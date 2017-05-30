@@ -1,6 +1,6 @@
 #!/bin/bash
 
-dim=4.97
+dim=5.964
 
 usage(){
     echo "USAGE: $0 <PDB file {molec.pdb} > "
@@ -88,9 +88,9 @@ protein_steep(){
         xdim=$dim
         ydim=$dim
         zdim=$dim
-            #-box $xdim $ydim $zdim \
+            #-d 1.0 \   ## Box size is bigger than -d 1.0 nm, and consistent with sam_box.
         echo 'Backbone' | gmx editconf -f $MOLEC.gro \
-            -d 1.0 \
+            -box $xdim $ydim $zdim \
             -bt tric \
             -o boxed.gro >> $logFile 2>> $errFile
         check boxed.gro 
@@ -121,10 +121,10 @@ solvate(){
         cp Protein_steep/$MOLEC.top Solvate/. 
         cd Solvate
 
-            #-box $xdim $ydim $zdim \
         gmx solvate -cp protein_steep.gro \
+            -box $dim $dim $dim \
             -p $MOLEC.top \
-        -o solvated.gro >> $logFile 2>> $errFile 
+            -o solvated.gro >> $logFile 2>> $errFile 
         check solvated.gro
 
         gmx grompp -f $MDP/vac_md.mdp \
@@ -282,7 +282,8 @@ production(){
         check $MOLEC.gro 
 
         if [ ! -f $MOLEC.nopbc.xtc ] ; then 
-            gmx trjconv -f $MOLEC.xtc \
+            echo 'Protein System' | gmx trjconv -f $MOLEC.xtc \
+                -center \
                 -s $MOLEC.tpr \
                 -ur rect \
                 -pbc mol \
@@ -291,7 +292,8 @@ production(){
         check $MOLEC.nopbc.xtc 
 
         if [ ! -f $MOLEC.nopbc.gro ] ; then 
-            gmx trjconv -f $MOLEC.gro \
+            echo 'Protein System' | gmx trjconv -f $MOLEC.gro \
+                -center \
                 -s $MOLEC.tpr \
                 -ur rect \
                 -pbc mol \

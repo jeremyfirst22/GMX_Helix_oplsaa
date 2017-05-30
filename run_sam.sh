@@ -1,7 +1,7 @@
 #!/bin/bash
 
-dim=4.97
-numMols=10
+dim=5.964
+numMols=12
 
 usage(){
     echo "USAGE: $0 <PDB file {molec.pdb} > " 
@@ -144,9 +144,9 @@ solvate(){
         cd Solvate
 
         gmx solvate -cp protein_steep.gro \
-            -box $xdim $ydim $zdim \
+            -box $dim $dim $dim \
             -p $MOLEC.top \
-        -o solvated.gro >> $logFile 2>> $errFile 
+            -o solvated.gro >> $logFile 2>> $errFile 
         check solvated.gro
 
         gmx grompp -f $MDP/vac_md.mdp \
@@ -157,8 +157,8 @@ solvate(){
         
         echo 'SOL' | gmx genion -s genion.tpr \
             -neutral \
-            -nname 'Cl-' \
-            -pname 'Na+' \
+            -nname 'CL' \
+            -pname 'NA' \
             -o neutral.gro >> $logFile 2>> $errFile 
         check neutral.gro 
 
@@ -306,7 +306,7 @@ with open(output, 'w') as f :
         gmx insert-molecules -ci twisted.gro \
             -ip position.dat \
             -rot none \
-            -box 4.97 4.97 4.97 \
+            -box $dim $dim $dim \
             -o layer.gro  >> $logFile 2>> $errFile 
         check layer.gro 
 
@@ -608,7 +608,7 @@ production(){
         check $MOLEC.gro 
 
         if [ ! -f $MOLEC.nopbc.xtc ] ; then 
-            gmx trjconv -f $MOLEC.xtc \
+            echo 'System' | gmx trjconv -f $MOLEC.xtc \
                 -s $MOLEC.tpr \
                 -ur rect \
                 -pbc mol \
@@ -617,7 +617,7 @@ production(){
         check $MOLEC.nopbc.xtc 
 
         if [ ! -f $MOLEC.nopbc.gro ] ; then 
-            gmx trjconv -f $MOLEC.gro \
+            echo 'System' | gmx trjconv -f $MOLEC.gro \
                 -s $MOLEC.tpr \
                 -ur rect \
                 -pbc mol \
@@ -632,6 +632,7 @@ production(){
         printf "Skipped\n"
         fi  
 } 
+
 printf "\n\t\t*** Program Beginning ***\n\n"
 cd $MOLEC
 protein_steep
@@ -646,6 +647,7 @@ system_steep
 system_nvt
 production
 cd ../
+
 printf "\n\n\t\t*** Program Ending    ***\n\n"
 
 
