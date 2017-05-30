@@ -1,0 +1,57 @@
+; Back-bone position restraints
+define                = -DPOSRES
+
+; Run control
+integrator            = md 
+tinit                 = 0
+dt                    = 0.002 
+nsteps                = 50000
+comm-mode             = Linear
+comm-grps             = Protein  Non-Protein
+
+; Output control 
+nstxout               = 2500
+nstvout               = 2500
+nstlog                = 100
+nstenergy             = 100
+
+; Neighbor searching
+cutoff-scheme         = group
+nstlist               = 1
+ns-type               = grid
+pbc                   = xyz 
+rlist                 = 0.8
+
+; Electrostatics
+coulombtype           = PME
+rcoulomb              = 0.8
+
+; Van der Wall treatment
+vdwtype               = cut-off
+rvdw                  = 0.8
+DispCorr              = EnerPres
+
+; Thermostat and temp-coupling
+tcoupl                = nose-hoover
+tc-grps               = Protein   Non-Protein
+tau-t                 = 0.1       0.1 
+ref-t                 = 300       300 
+
+; Pressure control 
+pcoupl                = parrinello-rahman
+pcoupltype            = isotropic
+tau-p                 = 2.0
+compressibility       = 4.5e-5
+ref-p                 = 1.0
+refcoord-scaling      = com
+
+; Initial velocity generation 
+gen_vel               = no
+
+; Restraint algorithms on bonds 
+constraints           = h-bonds
+constraint-algorithm  = LINCS  
+continuation          = yes
+
+
+
