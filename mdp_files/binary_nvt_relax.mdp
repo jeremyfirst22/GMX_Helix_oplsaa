@@ -1,5 +1,3 @@
-; 7.3.2 Preprocessing
-define                  = -DPOSRES      ; defines to pass to the preprocessor
 
 ; 7.3.3 Run Control
 integrator              = md                    ; md integrator

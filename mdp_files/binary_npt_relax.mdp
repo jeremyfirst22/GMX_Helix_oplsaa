@@ -1,5 +1,3 @@
-; Back-bone position restraints
-define                = -DPOSRES
 
 ; Run control
 integrator            = md 
