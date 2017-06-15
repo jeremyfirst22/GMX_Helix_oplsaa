@@ -24,14 +24,14 @@ nstlist                  = 10
 ns_type                  = grid 
 pbc                      = xyz
 
-rlist                    = 0.8
+rlist                    = 1.0
 coulombtype              = pme 
-rcoulomb                 = 0.8
+rcoulomb                 = 1.0
 fourierspacing           = 0.12
 pme-order                = 4
 epsilon-r                = 1
 vdw-type                 = cut-off
-rvdw                     = 0.8
+rvdw                     = 1.0
 
 constraints              = none
 cutoff-scheme            = group 

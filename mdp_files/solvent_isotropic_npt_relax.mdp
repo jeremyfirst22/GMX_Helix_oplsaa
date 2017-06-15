@@ -20,15 +20,15 @@ cutoff-scheme         = group
 nstlist               = 1
 ns-type               = grid
 pbc                   = xyz 
-rlist                 = 0.8
+rlist                 = 1.0
 
 ; Electrostatics
 coulombtype           = PME
-rcoulomb              = 0.8
+rcoulomb              = 1.0
 
 ; Van der Wall treatment
 vdwtype               = cut-off
-rvdw                  = 0.8
+rvdw                  = 1.0
 DispCorr              = EnerPres
 
 ; Thermostat and temp-coupling

@@ -25,16 +25,16 @@ energygrps              = System        ; group(s) to write to energy file
 nstlist                 = 1             ; [steps] freq to update neighbor list
 ns_type                 = grid          ; method of updating neighbor list
 pbc                     = xyz           ; periodic boundary conditions in all directions
-rlist                   = 0.8           ; [nm] cut-off distance for the short-range neighbor list
+rlist                   = 1.0           ; [nm] cut-off distance for the short-range neighbor list
 cutoff-scheme           = group 
 
 ; 7.3.10 Electrostatics
 coulombtype             = PME           ; Particle-Mesh Ewald electrostatics
-rcoulomb                = 0.8           ; [nm] distance for Coulomb cut-off
+rcoulomb                = 1.0           ; [nm] distance for Coulomb cut-off
 
 ; 7.3.11 VdW
 vdwtype                 = cut-off       ; twin-range cut-off with rlist where rvdw >= rlist
-rvdw                    = 0.8           ; [nm] distance for LJ cut-off
+rvdw                    = 1.0           ; [nm] distance for LJ cut-off
 DispCorr                = EnerPres      ; apply long range dispersion corrections
 
 ; 7.3.13 Ewald
