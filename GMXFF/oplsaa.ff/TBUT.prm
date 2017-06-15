@@ -1,0 +1,27 @@
+[ atomtypes ] 
+; name  bond_type    mass    charge   ptype          sigma      epsilon
+   CA4  CA4   6    12.011    0.0000  A               0.38999     0.1560632
+   CH3  CH3   6    15.035    0.0000  A               0.40618     0.5317864
+   TOH  TOH   8    15.999    0.0000  A               0.31104     0.6552144
+   THO  THO   1     1.008    0.0000  A               0.0         0.0 
+
+[ bondtypes ] 
+; i    j  func       b0          kb
+TOH  THO     1       0.0945      232375.2
+CA4  TOH     1       0.1430      133888.0 
+CA4  CH3     1       0.1530      112131.2
+
+[ angletypes ] 
+;  i    j    k  func       th0       cth 
+ CH3  CA4  CH3     1     112.0     263.592
+ THO  TOH  CA4     1     108.5     230.120 
+ TOH  CA4  CH3     1     108.0     334.720 
+
+[ dihedraltypes ] 
+;  i    j    k    l   func     coefficients
+; OPLS Fourier dihedraltypes translated to Gromacs Ryckaert-Bellemans form 
+; according to the formula in the Gromacs manual.
+ THO  TOH  CA4  CH3      3     0.6799    2.03970   0.0000   -2.71960    0.0000    0.0000
+
+
+

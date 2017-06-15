@@ -1,0 +1,4 @@
+CA4      12.011   ; Central carbon t-butanol 
+CH3      15.035   ; United atom model of methyl group for t-butanol 
+TOH      15.999   ; alchohol oxygen for t-butanol 
+THO       1.008   ; alchohol hydrogen for t-butanol
