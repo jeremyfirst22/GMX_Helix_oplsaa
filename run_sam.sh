@@ -19,13 +19,13 @@ if [ ! -f $fileName ] ; then
     fi 
 if [[ $fileName == *.pdb ]] ; then 
     MOLEC=$(basename $fileName) 
-    MOLEC=${MOLEC%.*}
+    MOLEC=${MOLEC%.*}_sam
 else 
     echo "ERROR: Input file must be PDB file (*.pdb)" 
     exit 
     fi 
 if [ ! -d $MOLEC ] ; then mkdir $MOLEC ; fi 
-if [ ! -f $MOLEC/$fileName ] ; then cp $fileName $MOLEC/. ; fi 
+if [ ! -f $MOLEC/$fileName ] ; then cp $fileName $MOLEC/$MOLEC.pdb ; fi 
 
 TOP=${PWD}
 MDP=$TOP/mdp_files
@@ -207,7 +207,7 @@ solvent_steep(){
 }
 
 solvent_nvt(){
-    printf "\t\tSolvent NVT Relaxation...................." 
+    printf "\t\tSolvent NVT relaxation...................." 
     if [ ! -f Solvent_nvt/solvent_nvt.gro ] ; then 
         create_dir Solvent_nvt
         
@@ -234,7 +234,7 @@ solvent_nvt(){
 }
 
 solvent_npt(){
-    printf "\t\tSolvent NPT Semiisotropic Relaxation......" 
+    printf "\t\tSolvent NPT semiisotropic relaxation......" 
     if [ ! -f Solvent_npt/solvent_npt.gro ] ; then 
         create_dir Solvent_npt
         
@@ -581,7 +581,7 @@ system_nvt(){
 } 
 
 production(){
-    printf "\t\tProduction Run............................" 
+    printf "\t\tProduction run............................" 
     if [ ! -f Production/$MOLEC.nopbc.gro ] ; then 
         create_dir Production
         

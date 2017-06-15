@@ -282,14 +282,15 @@ solvate(){
             -o neutral.gro >> $logFile 2>> $errFile 
         check neutral.top 
 
-        ##Need to rebuild posre.itp to be only heavy atoms from protein
+        ##Need to rebuild posre_Protein.itp to be only heavy atoms from protein
         ## pdb2gmx assigns TBUT heavy atoms to restraints called by POSRES, but 
         ##    we want all solvent molecuels to relax. 
-        echo "; Position restraints ONLY for protein heavy atoms" > posre.itp 
-        echo "[ position_restraints ]" >> posre.itp 
-        echo "; atom  type      fx      fy      fz" >> posre.itp 
+        rm posre.itp 
+        echo "; Position restraints ONLY for protein heavy atoms" > posre_Protein.itp 
+        echo "[ position_restraints ]" >> posre_Protein.itp 
+        echo "; atom  type      fx      fy      fz" >> posre_Protein.itp 
         for atom in `tail -n +3 neutral.gro | sed '$ d' | grep -v HOH | grep -v TBUT | grep -v CL | awk '{print $2"\t"$3}' | grep "^[CNOS]" | awk '{print $2}'` ; do 
-            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 1000 1000 1000 >> posre.itp 
+            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 1000 1000 1000 >> posre_Protein.itp 
             done 
 
         clean

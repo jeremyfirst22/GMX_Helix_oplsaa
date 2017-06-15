@@ -18,13 +18,13 @@ if [ ! -f $fileName ] ; then
     fi 
 if [[ $fileName == *.pdb ]] ; then 
     MOLEC=$(basename $fileName)
-    MOLEC=${MOLEC%.*}
+    MOLEC=${MOLEC%.*}_water
 else 
     echo "ERROR: Input file must be PDB file (*.pdb)" 
     exit 
     fi 
 if [ ! -d $MOLEC ] ; then mkdir $MOLEC ; fi 
-if [ ! -f $MOLEC/$fileName ] ; then cp $fileName $MOLEC/ ; fi 
+if [ ! -f $MOLEC/$fileName ] ; then cp $fileName $MOLEC/$MOLEC.pdb ; fi 
 
 TOP=${PWD}
 MDP=$TOP/mdp_files
@@ -185,7 +185,7 @@ solvent_steep(){
 }
 
 solvent_nvt(){
-    printf "\t\tSolvent NVT Relaxation...................." 
+    printf "\t\tSolvent NVT relaxation...................." 
     if [ ! -f Solvent_nvt/solvent_nvt.gro ] ; then 
         create_dir Solvent_nvt
         
@@ -212,7 +212,7 @@ solvent_nvt(){
 }
 
 solvent_npt(){
-    printf "\t\tSolvent NPT Isotropic Relaxation.........." 
+    printf "\t\tSolvent NPT isotropic relaxation.........." 
     if [ ! -f Solvent_npt/solvent_npt.gro ] ; then 
         create_dir Solvent_npt
         
@@ -239,7 +239,7 @@ solvent_npt(){
 }
 
 production(){
-    printf "\t\tProduction Run............................" 
+    printf "\t\tProduction run............................" 
     if [ ! -f Production/$MOLEC.nopbc.gro ] ; then 
 #            CA1=$(grep " CA " $MOLEC.npt_relax.gro | grep "GLY" | awk '{print $3}' | head -n1) 
 #            CA2=$(grep " CA " $MOLEC.npt_relax.gro | grep "GLY" | awk '{print $3}' | tail -n1) 
