@@ -1,7 +1,10 @@
 #!/bin/bash
 
-dim=5.964
+#dim=5.964
 numMols=12
+spacing=0.497 ##nm 
+glyDist=0.6917 ##nm 
+glyRest=500000 #kJ/mol/nm
 
 usage(){
     echo "USAGE: $0 <PDB file {molec.pdb} > " 
@@ -76,6 +79,158 @@ create_dir(){
            fi  
 }
 
+build_SAM(){
+    printf "\t\tBuilding SAM layer........................" 
+    if [ ! -f Build_SAM/bottom.gro ] ; then 
+        create_dir Build_SAM 
+        
+        cp $MOLEC.pdb Build_SAM/. 
+        cp decanethiol.pdb Build_SAM/. 
+        cd Build_SAM
+
+        echo 'LIG' | gmx editconf -f decanethiol.pdb \
+            -princ \
+            -o oriented.gro >> $logFile 2>> $errFile 
+        check oriented.gro 
+
+        gmx editconf -f oriented.gro \
+            -rotate 180 90 0 \
+            -o upright.gro >> $logFile 2>> $errFile 
+        check upright.gro 
+
+        gmx editconf -f upright.gro \
+            -rotate 30 0 0 \
+            -center 0 0 0 \
+            -o inplane.gro >> $logFile 2>> $errFile  
+        check inplane.gro 
+
+        gmx editconf -f inplane.gro \
+            -rotate 0 22 0 \
+            -center 0 0 0 \
+            -o twisted.gro >> $logFile 2>> $errFile 
+        check twisted.gro 
+
+        echo "#!/usr/bin/env python
+import math as m
+
+numMols=$numMols
+spacing=$spacing
+step=spacing * m.cos(m.pi / 6 ) 
+
+for i in range(numMols) : 
+    for j in range(numMols) : 
+        x,y,z = i*step, j*spacing, 0.0 
+        if not i%2 == 0 : 
+             y += spacing / 2
+        print \"%.3f  %.3f  %.3f\"%(x,y,z) 
+" > make_position.py 
+
+        python make_position.py > position.dat 
+        check position.dat 
+        
+        xdim=`echo "$numMols * $spacing * c(4*a(1) / 6) " | bc -l`
+        ydim=`echo "$numMols * $spacing " | bc -l`
+        zdim=$xdim
+
+        gmx insert-molecules -ci twisted.gro \
+            -ip position.dat \
+            -rot none \
+            -box $xdim $ydim $zdim \
+            -o layer.gro >> $logFile 2>> $errFile 
+        check layer.gro 
+
+        gmx editconf -f layer.gro \
+            -bt triclinic \
+            -o boxed.gro >> $logFile 2>> $errFile  
+        check boxed.gro 
+
+        gmx pdb2gmx -f boxed.gro \
+            -p layer.top \
+            -ff oplsaa \
+            -water tip3p \
+            -o boxed.gro >> $logFile 2>> $errFile 
+        check layer.top 
+
+        includeLine=`cat -n layer.top | grep '; Include Position restraint file' | awk '{print $1}' | tail -n1 `
+        head -n $includeLine layer.top > decanethiol.top 
+        echo '#ifdef POSSULRES 
+#include "posre_SUL.itp" 
+#endif' >> decanethiol.top 
+        ((includeLine++)) 
+        tail -n +$includeLine layer.top >> decanethiol.top
+
+        echo "[ position_restraints ]" > posre_SUL.itp 
+        echo ";; Pin sulfur atoms to spacing found on SAM" >> posre_SUL.itp 
+        for atom in `grep LIG boxed.gro | grep S1 | awk '{print $3}'` ; do 
+            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 1000 1000 1000 >> posre_SUL.itp 
+        done 
+
+        zshift=`grep LIG boxed.gro | grep " H22 " | awk '{print $6}' | sort -n | uniq | head -n1`
+        yshift=`grep LIG boxed.gro | grep " H22 " | awk '{print $5}' | sort -n | uniq | head -n1`
+        xshift=`grep LIG boxed.gro | grep " H22 " | awk '{print $4}' | sort -n | uniq | head -n1`
+    
+        zshift=`echo "-$zshift + 0.10" | bc -l | awk '{printf "%f", $0}'`
+        yshift=`echo "-$yshift " | bc -l | awk '{printf "%f", $0}'`
+        xshift=`echo "-$xshift " | bc -l | awk '{printf "%f", $0}'`
+
+        gmx editconf -f boxed.gro \
+            -translate $xshift $yshift $zshift \
+            -o bottom.gro >> $logFile 2>> $errFile 
+        check bottom.gro
+
+        clean
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+    check Build_SAM/posre_SUL.itp Build_SAM/decanethiol.top Build_SAM/bottom.gro 
+} 
+
+layer_relax(){
+    printf "\t\tSteep and NVT relax of SAM layer.........." 
+    if [ ! -f Relax_SAM/nvt_relax.nopbc.gro ] ; then 
+        create_dir Relax_SAM
+        
+        cp Build_SAM/decanethiol.top Relax_SAM/.
+        cp Build_SAM/bottom.gro Relax_SAM/.
+        cp Build_SAM/*.itp Relax_SAM/. 
+        cd Relax_SAM
+        
+        gmx grompp -f $MDP/sam_steep.mdp \
+            -c bottom.gro \
+            -p decanethiol.top \
+            -o steep.tpr >> $logFile 2>> $errFile 
+        check steep.tpr 
+
+        gmx mdrun -deffnm steep >> $logFile 2>> $errFile 
+        check steep.gro 
+
+        gmx grompp -f $MDP/sam_nvt_relax.mdp \
+            -c steep.gro \
+            -p decanethiol.top \
+            -o nvt_relax.tpr >> $logFile 2>> $errFile 
+        check nvt_relax.tpr 
+
+        if [ ! -f nvt_relax.gro ] ; then 
+            gmx mdrun -deffnm nvt_relax >> $logFile 2>> $errFile 
+            fi 
+        check nvt_relax.gro 
+
+        echo '0' | gmx trjconv -f nvt_relax.gro \
+            -s nvt_relax.tpr \
+            -pbc nojump \
+            -o nvt_relax.nopbc.gro >> $logFile 2>> $errFile 
+        check nvt_relax.nopbc.gro
+
+        clean
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
 protein_steep(){
     printf "\t\tProtein steep............................." 
     if [ ! -f Protein_steep/protein_steep.gro ] ; then 
@@ -93,9 +248,10 @@ protein_steep(){
             -o $MOLEC.gro >> $logFile 2>> $errFile 
         check $MOLEC.gro 
 
-        xdim=$dim
-        ydim=$dim
-        zdim=$dim
+        xdim=`tail -n1 ../Relax_SAM/nvt_relax.gro | awk '{print $1}'`
+        ydim=`tail -n1 ../Relax_SAM/nvt_relax.gro | awk '{print $2}'`
+        zdim=`tail -n1 ../Relax_SAM/nvt_relax.gro | awk '{print $3}'`
+
         echo 'Backbone' | gmx editconf -f $MOLEC.gro \
             -box $xdim $ydim $zdim \
             -bt tric \
@@ -110,10 +266,14 @@ protein_steep(){
         check rotated.gro 
 
         ##This is the distance to the edge of the box. 
+        xshift=`echo "$xdim / 2" | bc -l`
+        yshift=`echo "$ydim / 2" | bc -l`
+        
+
         zshift=`cat rotated.gro | awk '{print $5}' | sort -nr | tail -n1`
-        zshift=`echo "$zshift * -1 - .154" | bc -l`
+        zshift=`echo "$zshift * -1 - $glyDist" | bc -l`
         gmx editconf -f rotated.gro \
-            -translate `echo "$xdim / 2" | bc -l` `echo "$ydim / 2" | bc -l` $zshift \
+            -translate $xshift $yshift $zshift \
             -o translated.gro >> $logFile 2>> $errFile  
         check translated.gro 
 
@@ -251,148 +411,6 @@ solvent_npt(){
 
         gmx mdrun -deffnm solvent_npt >> $logFile 2>> $errFile 
         check solvent_npt.gro 
-
-        clean
-        printf "Success\n" 
-        cd ../
-    else
-        printf "Skipped\n"
-        fi  
-}
-
-build_SAM(){
-    printf "\t\tBuilding SAM layer........................" 
-    if [ ! -f Build_SAM/bottom.gro ] ; then 
-        create_dir Build_SAM 
-        
-        cp $MOLEC.pdb Build_SAM/. 
-        cp decanethiol.pdb Build_SAM/. 
-        cd Build_SAM
-
-        echo 'LIG' | gmx editconf -f decanethiol.pdb \
-            -princ \
-            -o oriented.gro >> $logFile 2>> $errFile 
-        check oriented.gro 
-
-        gmx editconf -f oriented.gro \
-            -rotate 0 90 0 \
-            -o upright.gro >> $logFile 2>> $errFile 
-        check upright.gro 
-
-        gmx editconf -f upright.gro \
-            -rotate -22 -30 15 \
-            -center 0 0 0 \
-            -o twisted.gro >> $logFile 2>> $errFile 
-        check twisted.gro 
-
-        echo "#!/usr/bin/env python
-import numpy as np 
-
-output=\"position.dat\"
-step=$dim / $numMols
-numMols = $numMols
-
-with open(output, 'w') as f : 
-    for i in range(numMols) : 
-        for j in range(numMols) : 
-            if not i%2 == 0 : 
-                j += 0.5 
-            f.write(\"%.3f  %.3f  %.3f\n\"%(i*step, j*step, 0.0)) 
-" > make_position.py 
-
-        python make_position.py 
-        check position.dat 
-
-        gmx insert-molecules -ci twisted.gro \
-            -ip position.dat \
-            -rot none \
-            -box $dim $dim $dim \
-            -o layer.gro  >> $logFile 2>> $errFile 
-        check layer.gro 
-
-        gmx editconf -f layer.gro \
-            -bt triclinic \
-            -o boxed.gro >> $logFile 2>> $errFile  
-        check boxed.gro 
-
-        gmx pdb2gmx -f boxed.gro \
-            -p layer.top \
-            -ff oplsaa \
-            -water tip3p \
-            -o boxed.gro >> $logFile 2>> $errFile 
-        check layer.top 
-
-        includeLine=`cat -n layer.top | grep '; Include Position restraint file' | awk '{print $1}' | tail -n1 `
-        head -n $includeLine layer.top > decanethiol.top 
-        echo '#ifdef POSSULRES 
-#include "posre_SUL.itp" 
-#endif' >> decanethiol.top 
-        ((includeLine++)) 
-        tail -n +$includeLine layer.top >> decanethiol.top
-
-        echo "[ position_restraints ]" > posre_SUL.itp 
-        echo ";; Pin sulfur atoms to spacing found on SAM" >> posre_SUL.itp 
-        for atom in `grep LIG boxed.gro | grep S1 | awk '{print $3}'` ; do 
-            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 1000 1000 1000 >> posre_SUL.itp 
-        done 
-
-        zshift=`grep LIG boxed.gro | grep " H22 " | awk '{print $6}' | sort -n | uniq | head -n1`
-        yshift=`grep LIG boxed.gro | grep " H22 " | awk '{print $5}' | sort -n | uniq | head -n1`
-        xshift=`grep LIG boxed.gro | grep " H22 " | awk '{print $4}' | sort -n | uniq | head -n1`
-    
-        zshift=`echo "-$zshift + 0.10" | bc -l | awk '{printf "%f", $0}'`
-        yshift=`echo "-$yshift " | bc -l | awk '{printf "%f", $0}'`
-        xshift=`echo "-$xshift " | bc -l | awk '{printf "%f", $0}'`
-
-        gmx editconf -f boxed.gro \
-            -translate $xshift $yshift $zshift \
-            -o bottom.gro >> $logFile 2>> $errFile 
-        check bottom.gro
-
-        clean
-        printf "Success\n" 
-        cd ../
-    else
-        printf "Skipped\n"
-        fi  
-    check Build_SAM/posre_SUL.itp Build_SAM/decanethiol.top Build_SAM/bottom.gro 
-} 
-
-layer_relax(){
-    printf "\t\tSteep and NVT relax of SAM layer.........." 
-    if [ ! -f Relax_SAM/nvt_relax.nopbc.gro ] ; then 
-        create_dir Relax_SAM
-        
-        cp Build_SAM/decanethiol.top Relax_SAM/.
-        cp Build_SAM/bottom.gro Relax_SAM/.
-        cp Build_SAM/*.itp Relax_SAM/. 
-        cd Relax_SAM
-        
-        gmx grompp -f $MDP/sam_steep.mdp \
-            -c bottom.gro \
-            -p decanethiol.top \
-            -o steep.tpr >> $logFile 2>> $errFile 
-        check steep.tpr 
-
-        gmx mdrun -deffnm steep >> $logFile 2>> $errFile 
-        check steep.gro 
-
-        gmx grompp -f $MDP/sam_nvt_relax.mdp \
-            -c steep.gro \
-            -p decanethiol.top \
-            -o nvt_relax.tpr >> $logFile 2>> $errFile 
-        check nvt_relax.tpr 
-
-        if [ ! -f nvt_relax.gro ] ; then 
-            gmx mdrun -deffnm nvt_relax >> $logFile 2>> $errFile 
-            fi 
-        check nvt_relax.gro 
-
-        echo '0' | gmx trjconv -f nvt_relax.gro \
-            -s nvt_relax.tpr \
-            -pbc nojump \
-            -o nvt_relax.nopbc.gro >> $logFile 2>> $errFile 
-        check nvt_relax.nopbc.gro
 
         clean
         printf "Success\n" 
@@ -635,13 +653,13 @@ production(){
 
 printf "\n\t\t*** Program Beginning ***\n\n"
 cd $MOLEC
+build_SAM
+layer_relax
 protein_steep
 solvate
 solvent_steep
 solvent_nvt
 solvent_npt
-build_SAM
-layer_relax
 build_system
 system_steep
 system_nvt
