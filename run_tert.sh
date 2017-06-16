@@ -133,7 +133,7 @@ prepare_box(){
 
         ## 0.800 g/cm^3, density of 2:1 TBA:H20
         ## 166.255 g/mol, molar mass of one mol of 2 tba molecules and 1 water molecule
-        numWat=`echo "print round(($dim * 10 **-7) ** 3 * 0.800 / 166.255 * 6.022 * 10 ** 23)" | python`
+        numWat=`echo "print int(round(($dim * 10 **-7) ** 3 * 0.800 / 166.255 * 6.022 * 10 ** 23))" | python`
         numTBA=`echo "$numWat * 2 " | bc -l`
 
         gmx insert-molecules -ci tba.pdb \
