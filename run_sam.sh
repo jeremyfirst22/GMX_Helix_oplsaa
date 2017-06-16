@@ -3,8 +3,9 @@
 #dim=5.964
 numMols=12
 spacing=0.497 ##nm 
-glyDist=0.6917 ##nm 
-glyRest=500000 #kJ/mol/nm
+glyDist=0.6822 ##nm from geometry optimization, Spartan '16, DFT wB97X-D, 6-311+g**
+glyRest=1000   #kJ/mol/nm
+sulRest=500000 #kJ/mol/nm
 
 usage(){
     echo "USAGE: $0 <PDB file {molec.pdb} > " 
@@ -162,7 +163,7 @@ for i in range(numMols) :
         echo "[ position_restraints ]" > posre_SUL.itp 
         echo ";; Pin sulfur atoms to spacing found on SAM" >> posre_SUL.itp 
         for atom in `grep LIG boxed.gro | grep S1 | awk '{print $3}'` ; do 
-            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 1000 1000 1000 >> posre_SUL.itp 
+            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 $sulRest $sulRest $sulRest >> posre_SUL.itp 
         done 
 
         zshift=`grep LIG boxed.gro | grep " H22 " | awk '{print $6}' | sort -n | uniq | head -n1`
@@ -260,18 +261,29 @@ protein_steep(){
             -o aligned.gro >> $logFile 2>> $errFile
         check aligned.gro 
 
-        gmx editconf -f aligned.gro \
-            -rotate -35 0 0 \
-            -o rotated.gro >> $logFile 2>> $errFile 
+        ## 90 deg around z axis puts long axis in long dimension of box
+        ## 60 or 30 deg around x axis puts CA of Gly at bottom, with Leus closest to SAM
+        if [[ "$MOLEC" == "folded_"* ]] ; then 
+            gmx editconf -f aligned.gro \
+                -rotate -60 0 90 \
+                -o rotated.gro >> $logFile 2>> $errFile 
+        elif [[ "$MOLEC" == "unfolded_"* ]] ; then 
+            gmx editconf -f aligned.gro \
+                -rotate 30 0 90 \
+                -o rotated.gro >> $logFile 2>> $errFile 
+        else 
+            echo "ERROR: I don't know how to orient the protein!" 
+            echo "$MOLEC" 
+            exit 
+            fi 
         check rotated.gro 
 
         ##This is the distance to the edge of the box. 
         xshift=`echo "$xdim / 2" | bc -l`
         yshift=`echo "$ydim / 2" | bc -l`
-        
 
-        zshift=`cat rotated.gro | awk '{print $5}' | sort -nr | tail -n1`
-        zshift=`echo "$zshift * -1 - $glyDist" | bc -l`
+        zshift=`grep GLY rotated.gro | grep CA | awk '{print $6}' | sort -nr | tail -n1`
+        zshift=`echo "$zshift * -1 + $glyDist" | bc -l`
         gmx editconf -f rotated.gro \
             -translate $xshift $yshift $zshift \
             -o translated.gro >> $logFile 2>> $errFile  
@@ -292,6 +304,7 @@ protein_steep(){
     else
         printf "Skipped\n"
         fi
+    exit
 } 
 
 solvate(){
@@ -303,8 +316,12 @@ solvate(){
         cp Protein_steep/$MOLEC.top Solvate/. 
         cd Solvate
 
+        xdim=`tail -n1 protein_steep.gro | awk '{print $1}'`
+        ydim=`tail -n1 protein_steep.gro | awk '{print $2}'`
+        zdim=`tail -n1 protein_steep.gro | awk '{print $3}'`
+
         gmx solvate -cp protein_steep.gro \
-            -box $dim $dim $dim \
+            -box $xdim $ydim $zdim \
             -p $MOLEC.top \
             -o solvated.gro >> $logFile 2>> $errFile 
         check solvated.gro
@@ -426,7 +443,7 @@ build_system(){
         create_dir Build_system 
         
         cp Solvent_npt/solvent_npt.gro Build_system/. 
-        cp Solvent_npt/neutral.top Build_system/. 
+        #cp Solvent_npt/neutral.top Build_system/. 
         #cp Solvent_npt/*.itp Build_system/. 
         cp Relax_SAM/nvt_relax.nopbc.gro Build_system/. 
         cd Build_system
@@ -434,23 +451,23 @@ build_system(){
         zdim=`tail -n1 solvent_npt.gro | awk '{print $3}'`
         ydim=`tail -n1 solvent_npt.gro | awk '{print $2}'`
         xdim=`tail -n1 solvent_npt.gro | awk '{print $1}'`
-        zshift=`cat nvt_relax.nopbc.gro | grep LIG | awk '{print $6}' | sort -rn | uniq | tail -n1`
+        zshift=`cat nvt_relax.nopbc.gro | grep LIG | grep C10 | awk '{print $6}' | sort -n | tail -n1`
         zshift=`echo "$zshift * -1" | bc -l`
     
-        gmx editconf -f nvt_relax.nopbc.gro \
-            -translate 0 0 $zshift \
-            -o bottom_boxed.gro >> $logFile 2>> $errFile 
-        check bottom_boxed.gro 
+        cp nvt_relax.nopbc.gro bottom_boxed.gro 
+        #gmx editconf -f nvt_relax.nopbc.gro \
+        #    -translate 0 0 $zshift \
+        #    -o bottom_boxed.gro >> $logFile 2>> $errFile 
+        #check bottom_boxed.gro 
     
-        zshift=`cat bottom_boxed.gro | grep LIG | awk '{print $6}' | sort -n | uniq | tail -n1`
-        zdim=`echo "$zdim + $zshift" | bc -l`
+        zdim=`echo "$zdim - $zshift" | bc -l`
 
         gmx editconf -f solvent_npt.gro \
             -box $xdim $ydim $zdim \
             -o new_box.gro >> $logFile 2>> $errFile 
         check new_box.gro 
 
-        zshift=`cat new_box.gro | grep SOL | awk '{print $6}' | sort -n | uniq | tail -n1`
+        zshift=`cat new_box.gro | grep SOL | grep OW | awk '{print $6}' | sort -n | uniq | tail -n1`
         zshift=`echo "$zdim - $zshift" | bc -l`
     
         gmx editconf -f new_box.gro \
@@ -490,10 +507,11 @@ build_system(){
         ((includeLine++)) 
         tail -n +$includeLine neutral.top >> system.top 
 
+        ##Sulfer atoms have changed numbers. Need to rebuild posre_SUL.itp 
         echo "[ position_restraints ]" > posre_SUL.itp 
         echo ";; Pin sulfur atoms to spacing found on SAM" >> posre_SUL.itp 
         for atom in `grep LIG bottom_boxed.gro | grep S1 | awk '{print $3}'` ; do 
-            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 1000 1000 1000 >> posre_SUL.itp 
+            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 $sulRest $sulRest $sulRest >> posre_SUL.itp 
         done 
 
         add_restraints
@@ -530,7 +548,7 @@ add_restraints(){
 
     echo "[ bonds ]" > distance_restraints.itp 
     printf ";%6s%6s%6s%8s%8s%8s%12s\n" ai aj func b0 kb >> distance_restraints.itp
-    printf "%6s%6s%6s%8s%8s%8s%12s\n" $C10 $CA 6 0.6917 1000 >> distance_restraints.itp
+    printf "%6s%6s%6s%8s%8s%8s%12s\n" $C10 $CA 6 $glyDist $glyRest >> distance_restraints.itp
 
     echo '0 2' | gmx mindist -f system.gro \
         -n index.ndx \
@@ -539,7 +557,7 @@ add_restraints(){
 
     C10=`cat gly17_dist.out | awk '{print $2}'`
     CA=`cat gly17_dist.out | awk '{print $3}'`
-    printf "%6s%6s%6s%8s%8s%8s%12s\n" $C10 $CA 6 0.6917 1000 >> distance_restraints.itp
+    printf "%6s%6s%6s%8s%8s%8s%12s\n" $C10 $CA 6 $glyDist $glyRest >> distance_restraints.itp
 } 
 
 system_steep(){
