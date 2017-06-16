@@ -266,7 +266,7 @@ production(){
 
         if [ ! -f $MOLEC.gro ] ; then 
             if [ ! -f $MOLEC.tpr ] ; then 
-                gmx grompp -f $MDP/production_sam.mdp \
+                gmx grompp -f $MDP/production_solvent.mdp \
                     -p neutral.top \
                     -c solvent_npt.gro \
                     -o $MOLEC.tpr >> $logFile 2>> $errFile 
