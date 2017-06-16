@@ -304,7 +304,6 @@ protein_steep(){
     else
         printf "Skipped\n"
         fi
-    exit
 } 
 
 solvate(){
