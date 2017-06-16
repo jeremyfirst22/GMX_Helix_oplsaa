@@ -131,15 +131,20 @@ prepare_box(){
         cd Prepare_box/. 
         check tip3p.pdb tba.pdb 
 
+        ## 0.800 g/cm^3, density of 2:1 TBA:H20
+        ## 166.255 g/mol, molar mass of one mol of 2 tba molecules and 1 water molecule
+        numWat=`echo "print round(($dim * 10 **-7) ** 3 * 0.800 / 166.255 * 6.022 * 10 ** 23)" | python`
+        numTBA=`echo "$numWat * 2 " | bc -l`
+
         gmx insert-molecules -ci tba.pdb \
             -box $dim $dim $dim \
-            -nmol 1230 \
+            -nmol $numTBA \
             -o tert_box.gro >> $logFile 2>> $errFile 
         check tert_box.gro 
 
         gmx insert-molecules -ci tip3p.pdb \
             -f tert_box.gro \
-            -nmol 615 \
+            -nmol $numWat \
             -o mixture.gro >> $logFile 2>> $errFile 
         check mixture.gro 
 
