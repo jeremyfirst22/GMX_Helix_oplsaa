@@ -5,7 +5,7 @@ numMols=12
 spacing=0.497 ##nm 
 glyDist=0.6822 ##nm from geometry optimization, Spartan '16, DFT wB97X-D, 6-311+g**
 glyRest=1000   #kJ/mol/nm
-sulRest=500000 #kJ/mol/nm
+sulRest=200000 #kJ/mol/nm
 
 usage(){
     echo "USAGE: $0 <PDB file {molec.pdb} > " 
