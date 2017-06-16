@@ -54,7 +54,7 @@ check(){
 }
 
 clean(){
-    if [ -d oplsaa.ff ] ; then rm -r oplsaa.ff *.dat ; fi 
+    if [ -d $forceField.ff ] ; then rm -r $forceField.ff *.dat ; fi 
 }
 
 create_dir(){
@@ -149,7 +149,7 @@ prepare_box(){
         check mixture.gro 
 
         gmx pdb2gmx -f mixture.gro \
-            -ff oplsaa \
+            -ff $forceField \
             -water tip3p \
             -o mixture.gro \
             -p mixture.top >> $logFile 2>> $errFile 
@@ -258,7 +258,7 @@ solvate(){
 
         ## 3, 3 -- None, None for terimini options
         echo '3 3' | gmx pdb2gmx -f solvated.gro \
-            -ff oplsaa \
+            -ff $forceField \
             -water tip3p \
             -p solvated.top \
             -ter \
@@ -280,7 +280,7 @@ solvate(){
 
         ## 3, 3 -- None, None for terimini options
         echo '3 3' | gmx pdb2gmx -f neutral.gro \
-            -ff oplsaa \
+            -ff $forceField \
             -water tip3p \
             -p neutral.top \
             -ter \

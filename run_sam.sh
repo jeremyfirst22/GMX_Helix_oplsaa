@@ -59,7 +59,7 @@ check(){
 } 
 
 clean(){
-    if [ -d oplsaa.ff ] ; then rm -r oplsaa.ff *.dat ; fi 
+    if [ -d $forceField.ff ] ; then rm -r $forceField.ff *.dat ; fi 
 }
 
 create_dir(){
@@ -147,7 +147,7 @@ for i in range(numMols) :
 
         gmx pdb2gmx -f boxed.gro \
             -p layer.top \
-            -ff oplsaa \
+            -ff $forceField \
             -water tip3p \
             -o boxed.gro >> $logFile 2>> $errFile 
         check layer.top 
@@ -340,7 +340,7 @@ solvate(){
 
         ## 3, 3 -- None, None for terimini options
         echo '3 3' | gmx pdb2gmx -f neutral.gro \
-            -ff oplsaa \
+            -ff $forceField \
             -water tip3p \
             -p neutral.top \
             -ter \
@@ -490,7 +490,7 @@ build_system(){
         echo '3 3' | gmx pdb2gmx -f system.gro \
             -p neutral.top \
             -ter \
-            -ff oplsaa \
+            -ff $forceField \
             -water tip3p \
             -merge interactive \
             -o system.gro >> $logFile 2>> $errFile
@@ -509,9 +509,18 @@ build_system(){
         ##Sulfer atoms have changed numbers. Need to rebuild posre_SUL.itp 
         echo "[ position_restraints ]" > posre_SUL.itp 
         echo ";; Pin sulfur atoms to spacing found on SAM" >> posre_SUL.itp 
-        for atom in `grep LIG bottom_boxed.gro | grep S1 | awk '{print $3}'` ; do 
+        for atom in `grep LIG system.gro | grep S1 | awk '{print $3}'` ; do 
             printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 $sulRest $sulRest $sulRest >> posre_SUL.itp 
         done 
+
+        ## We need to rebuild posre.itp. pdb2gmx assigns all heavy atoms to restraints. 
+        ## We want the decanethiol heavy atoms to be able to relax with protein position restraints. 
+        echo "; Only protein heavy atom position restraints" > posre.itp 
+        echo "[ position_restraints ]" >> posre.itp 
+        echo "; atom  type      fx      fy      fz" >> posre.itp 
+        for atom in `tail -n +2 system.gro | sed '$ d' | grep -v HOH | grep -v CL | grep -v LIG | awk '{print $2"\t"$3}' | grep "^[CNOS]" | awk '{print $2}'` ; do 
+            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 1000 1000 1000 >> posre.itp 
+            done 
 
         add_restraints
 
@@ -567,7 +576,7 @@ system_steep(){
         cp Build_system/system.top System_steep/.
         cp Build_system/system.gro System_steep/.
         cp Build_system/*.itp System_steep/. 
-        cp Relax_SAM/*.itp System_steep/. 
+        #cp Relax_SAM/*.itp System_steep/. 
         cd System_steep
 
         gmx grompp -f $MDP/system_steep.mdp \

@@ -47,7 +47,7 @@ check(){
 }
 
 clean(){
-    if [ -d oplsaa.ff ] ; then rm -r oplsaa.ff *.dat ; fi 
+    if [ -d $forceField.ff ] ; then rm -r $forceField.ff *.dat ; fi 
 }
 
 create_dir(){
@@ -142,7 +142,7 @@ solvate(){
 
         ## 3, 3 -- None, None for terimini options
         echo '3 3' | gmx pdb2gmx -f neutral.gro \
-            -ff oplsaa \
+            -ff $forceField \
             -water tip3p \
             -p neutral.top \
             -ter \
