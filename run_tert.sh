@@ -131,10 +131,28 @@ prepare_box(){
         cd Prepare_box/. 
         check tip3p.pdb tba.pdb 
 
-        ## 0.800 g/cm^3, density of 2:1 TBA:H20
-        ## 166.255 g/mol, molar mass of one mol of 2 tba molecules and 1 water molecule
-        numWat=`echo "print int(round(($dim * 10 **-7) ** 3 * 0.800 / 166.255 * 6.022 * 10 ** 23))" | python`
-        numTBA=`echo "$numWat * 2 " | bc -l`
+        ### 0.800 g/cm^3, density of 2:1 TBA:H20
+        ### 166.255 g/mol, molar mass of one mol of 2 tba molecules and 1 water molecule
+        #numWat=`echo "print int(round(($dim * 10 **-7) ** 3 * 0.800 / 166.255 * 6.022 * 10 ** 23))" | python`
+        #numTBA=`echo "$numWat * 2 " | bc -l`
+        
+        molRatio=2
+        echo "#!/usr/bin/env python
+Na = 6.022 * 10 ** 23 #Avogadro's number 
+pTBA = 0.77014 ## g/cm**3 
+mmTBA = 74.12 ## g/mol 
+pH2O = 0.994029 ## g/cm**3 
+mmH2O = 18.01528 ## g/mol
+molRatio = $molRatio ##vol Ratio of tba:water
+V = ($dim * 10 ** -7)**3 ##cm**3
+xTBA = molRatio / (molRatio + 1.) ##vol fraction
+xH2O = 1 - xTBA ##vol fraction
+nTBA = xTBA * V * pTBA * Na / mmTBA 
+nH2O = xH2O * V * pH2O * Na / mmH2O 
+print \"%i\t%i\"%(round(nTBA),round(nH2O))" > calc_num_molecules.py 
+        python calc_num_molecules.py > molecules.xvg 
+        numTBA=`awk '{print $1}' molecules.xvg`
+        numWat=`awk '{print $2}' molecules.xvg`
 
         gmx insert-molecules -ci tba.pdb \
             -box $dim $dim $dim \
