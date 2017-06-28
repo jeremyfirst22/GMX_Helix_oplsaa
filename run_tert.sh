@@ -449,8 +449,7 @@ production(){
         check $MOLEC.gro 
 
         if [ ! -f $MOLEC.nopbc.xtc ] ; then 
-            echo 'Protein System' | gmx trjconv -f $MOLEC.xtc \
-                -center \
+            echo 'System' | gmx trjconv -f $MOLEC.xtc \
                 -s $MOLEC.tpr \
                 -ur rect \
                 -pbc mol \
@@ -459,8 +458,7 @@ production(){
         check $MOLEC.nopbc.xtc 
 
         if [ ! -f $MOLEC.nopbc.gro ] ; then 
-            echo 'Protein System' | gmx trjconv -f $MOLEC.gro \
-                -center \
+            echo 'System' | gmx trjconv -f $MOLEC.gro \
                 -s $MOLEC.tpr \
                 -ur rect \
                 -pbc mol \
