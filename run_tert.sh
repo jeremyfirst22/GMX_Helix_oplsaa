@@ -477,7 +477,7 @@ production(){
 } 
 
 dssp(){
-    printf "\t\tProduction run............................" 
+    printf "\t\tRunning dssp analysis....................." 
     if [ ! -f dssp/helen.nrt ] ; then 
         create_dir dssp
         cd dssp
@@ -526,6 +526,25 @@ dssp(){
         fi  
 } 
 
+rgyr(){
+    printf "\t\tCalculating radius of gyration............" 
+    if [ ! -f rgyr/gyrate.xvg ] ; then 
+        create_dir rgyr
+        cd rgyr
+        clean 
+
+        echo 'Protein' | gmx gyrate -f ../Production/$MOLEC.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -o gyrate.xvg >> $logFile 2>> $errFile 
+        check gyrate.xvg
+
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+} 
+
 printf "\n\t\t*** Program Beginning ***\n\n" 
 cd $MOLEC
 protein_steep
@@ -539,6 +558,7 @@ solvent_nvt
 solvent_npt
 production 
 dssp 
+rgyr 
 cd ../
 
 printf "\n\n\t\t*** Program Ending    ***\n\n" 
