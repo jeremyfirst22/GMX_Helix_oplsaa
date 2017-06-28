@@ -677,6 +677,56 @@ production(){
         fi  
 } 
 
+dssp(){
+    printf "\t\tProduction run............................" 
+    if [ ! -f dssp/helen.nrt ] ; then 
+        create_dir dssp
+        cd dssp
+        clean ##clean early. One of the outputs of gmx do_dssp is a *.dat file. We don't want to delete this while cleaning. 
+
+        echo 'Protein' | gmx do_dssp -f ../Production/$MOLEC.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -ver 1 \
+            -sss HGI \
+            -ssdump ssdump.dat \
+            -o ss.xpm \
+            -a area.xpm \
+            -ta totarea.xvg \
+            -aa averarea.xvg \
+            -sc scount.xvg >> $logFile 2>> $errFile
+        check scount.xvg ss.xpm area.xpm 
+
+        gmx xpm2ps -f area.xpm \
+            -by 10 \
+            -o area.eps >> $logFile 2>> $errFile 
+        check area.eps
+
+        gmx xpm2ps -f ss.xpm \
+            -by 10 \
+            -o ss.eps >> $logFile 2>> $errFile 
+        check ss.eps
+
+        ##Cut out helen.nrt from scount.xvg. 
+        ##Time     Alpha helix      3-10 helix (+5 helix)     Other structures
+        alphaCol=`grep '@' scount.xvg | grep "s. legend" | awk '{print $2"\t"$4}' | sed 's/^s//' | grep "A-Helix" | awk '{print $1}'`
+        alphaCol=$((alphaCol+2)) 
+
+        threeTenCol=`grep '@' scount.xvg | grep "s. legend" | awk '{print $2"\t"$4}' | sed 's/^s//' | grep "3-Helix" | awk '{print $1}'`
+        threeTenCol=$((threeTenCol+2)) 
+
+        fiveCol=`grep '@' scount.xvg | grep "s. legend" | awk '{print $2"\t"$4}' | sed 's/^s//' | grep "5-Helix" | awk '{print $1}'`
+        fiveCol=$((fiveCol+2)) 
+
+        cat scount.xvg | grep -v '@' | grep -v '#' | awk -v alpha=$alphaCol -v threeTen=$threeTenCol -v five=$fiveCol '{print $1"\t"$alpha"\t"$threeTen+$five"\t"18-$2}' > helen.nrt 
+        check helen.nrt 
+
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+} 
+
 printf "\n\t\t*** Program Beginning ***\n\n"
 cd $MOLEC
 build_SAM
@@ -690,6 +740,7 @@ build_system
 system_steep
 system_nvt
 production
+dssp
 cd ../
 
 printf "\n\n\t\t*** Program Ending    ***\n\n"
