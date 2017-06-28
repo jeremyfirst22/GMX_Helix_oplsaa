@@ -316,40 +316,69 @@ dssp(){
         cd dssp
         clean ##clean early. One of the outputs of gmx do_dssp is a *.dat file. We don't want to delete this while cleaning. 
 
-        echo 'Protein' | gmx do_dssp -f ../Production/$MOLEC.xtc \
-            -s ../Production/$MOLEC.tpr \
-            -ver 1 \
-            -sss HGI \
-            -ssdump ssdump.dat \
-            -o ss.xpm \
-            -a area.xpm \
-            -ta totarea.xvg \
-            -aa averarea.xvg \
-            -sc scount.xvg >> $logFile 2>> $errFile
-        check scount.xvg ss.xpm area.xpm 
+        #echo 'Protein' | gmx do_dssp -f ../Production/$MOLEC.xtc \
+        #    -s ../Production/$MOLEC.tpr \
+        #    -ver 1 \
+        #    -sss HGI \
+        #    -ssdump ssdump.dat \
+        #    -o ss.xpm \
+        #    -a area.xpm \
+        #    -ta totarea.xvg \
+        #    -aa averarea.xvg \
+        #    -sc scount.xvg >> $logFile 2>> $errFile
+        #check scount.xvg ss.xpm area.xpm 
 
-        gmx xpm2ps -f area.xpm \
-            -by 10 \
-            -o area.eps >> $logFile 2>> $errFile 
-        check area.eps
+        #gmx xpm2ps -f area.xpm \
+        #    -by 10 \
+        #    -o area.eps >> $logFile 2>> $errFile 
+        #check area.eps
 
-        gmx xpm2ps -f ss.xpm \
-            -by 10 \
-            -o ss.eps >> $logFile 2>> $errFile 
-        check ss.eps
+        #gmx xpm2ps -f ss.xpm \
+        #    -by 10 \
+        #    -o ss.eps >> $logFile 2>> $errFile 
+        #check ss.eps
 
         ##Cut out helen.nrt from scount.xvg. 
-        ##Time     Alpha helix      3-10 helix (+5 helix)     Other structures
-        alphaCol=`grep '@' scount.xvg | grep "s. legend" | awk '{print $2"\t"$4}' | sed 's/^s//' | grep "A-Helix" | awk '{print $1}'`
-        alphaCol=$((alphaCol+2)) 
+        echo "#!/usr/bin/env python
+import numpy as np  
 
-        threeTenCol=`grep '@' scount.xvg | grep "s. legend" | awk '{print $2"\t"$4}' | sed 's/^s//' | grep "3-Helix" | awk '{print $1}'`
-        threeTenCol=$((threeTenCol+2)) 
+with open('scount.xvg') as f : 
+    filelines = f.readlines() 
 
-        fiveCol=`grep '@' scount.xvg | grep "s. legend" | awk '{print $2"\t"$4}' | sed 's/^s//' | grep "5-Helix" | awk '{print $1}'`
-        fiveCol=$((fiveCol+2)) 
+header=0
+for line in filelines : 
+    if line.startswith('#') or line.startswith('@') : 
+        header += 1
+        if 'A-Helix' in line : 
+            alpha=line.split()[1][1:] 
+        if '3-Helix' in line : 
+            three=line.split()[1][1:] 
+        if '5-Helix' in line : 
+            five =line.split()[1][1:] 
+header -= 2
 
-        cat scount.xvg | grep -v '@' | grep -v '#' | awk -v alpha=$alphaCol -v threeTen=$threeTenCol -v five=$fiveCol '{print $1"\t"$alpha"\t"$threeTen+$five"\t"18-$2}' > helen.nrt 
+data = np.genfromtxt('scount.xvg',skip_header=header)
+col1 = data[:,0]
+
+try : 
+    col2 = data[:,int(alpha)]
+except NameError : 
+    col2 = np.zeros(len(data[:,0])) 
+try : 
+    col3a = data[:,int(three)]
+except NameError : 
+    col3a = np.zeros(len(data[:,0])) 
+try : 
+    col3b = data[:,int(five)]
+except NameError : 
+    col3b = np.zeros(len(data[:,0])) 
+col3=col3a + col3b
+col4 = 18 - col2 - col3 
+
+for i in range(len(col1)) : 
+    print \"%5i%5i%5i%5i\"%(col1[i],col2[i],col3[i],col4[i])" > cut_helen.py 
+
+        python cut_helen.py > helen.nrt 
         check helen.nrt 
 
         printf "Success\n" 
@@ -387,6 +416,7 @@ solvent_nvt
 solvent_npt
 production 
 dssp
+rgyr
 cd ../
 
 printf "\n\n\t\t*** Program Ending    ***\n\n" 
