@@ -347,6 +347,9 @@ solvate(){
             -o neutral.gro >> $logFile 2>> $errFile 
         check neutral.top 
 
+        sed 's/POSRES/POSRES_IONS/' neutral_Ion2.itp > temp.itp 
+        mv temp.itp neutral_Ion2.itp 
+
         clean
         printf "Success\n" 
         cd ../
@@ -684,27 +687,27 @@ dssp(){
         cd dssp
         clean ##clean early. One of the outputs of gmx do_dssp is a *.dat file. We don't want to delete this while cleaning. 
 
-        #echo 'Protein' | gmx do_dssp -f ../Production/$MOLEC.xtc \
-        #    -s ../Production/$MOLEC.tpr \
-        #    -ver 1 \
-        #    -sss HGI \
-        #    -ssdump ssdump.dat \
-        #    -o ss.xpm \
-        #    -a area.xpm \
-        #    -ta totarea.xvg \
-        #    -aa averarea.xvg \
-        #    -sc scount.xvg >> $logFile 2>> $errFile
-        #check scount.xvg ss.xpm area.xpm 
+        echo 'Protein' | gmx do_dssp -f ../Production/$MOLEC.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -ver 1 \
+            -sss HGI \
+            -ssdump ssdump.dat \
+            -o ss.xpm \
+            -a area.xpm \
+            -ta totarea.xvg \
+            -aa averarea.xvg \
+            -sc scount.xvg >> $logFile 2>> $errFile
+        check scount.xvg ss.xpm area.xpm 
 
-        #gmx xpm2ps -f area.xpm \
-        #    -by 10 \
-        #    -o area.eps >> $logFile 2>> $errFile 
-        #check area.eps
+        gmx xpm2ps -f area.xpm \
+            -by 10 \
+            -o area.eps >> $logFile 2>> $errFile 
+        check area.eps
 
-        #gmx xpm2ps -f ss.xpm \
-        #    -by 10 \
-        #    -o ss.eps >> $logFile 2>> $errFile 
-        #check ss.eps
+        gmx xpm2ps -f ss.xpm \
+            -by 10 \
+            -o ss.eps >> $logFile 2>> $errFile 
+        check ss.eps
 
         ##Cut out helen.nrt from scount.xvg. 
         echo "#!/usr/bin/env python
@@ -808,9 +811,9 @@ build_system
 system_steep
 system_nvt
 production
-dssp
-rgyr 
-minimage
+#dssp
+#rgyr 
+#minimage
 cd ../
 
 printf "\n\n\t\t*** Program Ending    ***\n\n"
