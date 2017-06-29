@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #dim=5.964
-numMols=12
+numMols=15
 spacing=0.497 ##nm 
 glyDist=0.6822 ##nm from geometry optimization, Spartan '16, DFT wB97X-D, 6-311+g**
 glyRest=1000   #kJ/mol/nm
@@ -218,7 +218,7 @@ layer_relax(){
             fi 
         check nvt_relax.gro 
 
-        echo '0' | gmx trjconv -f nvt_relax.gro \
+        echo 'System' | gmx trjconv -f nvt_relax.gro \
             -s nvt_relax.tpr \
             -pbc nojump \
             -o nvt_relax.nopbc.gro >> $logFile 2>> $errFile 
@@ -331,7 +331,7 @@ solvate(){
             -o genion.tpr >> $logFile 2>> $errFile 
         check genion.tpr
         
-        echo 'SOL' | gmx genion -s genion.tpr \
+        echo 'Water' | gmx genion -s genion.tpr \
             -neutral \
             -nname 'CL' \
             -pname 'NA' \

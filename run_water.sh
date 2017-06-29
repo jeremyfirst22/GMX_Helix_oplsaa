@@ -1,6 +1,6 @@
 #!/bin/bash
 
-dim=5.964
+dim=7.455
 
 usage(){
     echo "USAGE: $0 <PDB file {molec.pdb} > "
@@ -133,7 +133,7 @@ solvate(){
             -o genion.tpr >> $logFile 2>> $errFile 
         check genion.tpr
         
-        echo 'SOL' | gmx genion -s genion.tpr \
+        echo 'Water' | gmx genion -s genion.tpr \
             -neutral \
             -nname 'CL' \
             -pname 'NA' \
