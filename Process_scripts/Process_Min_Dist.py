@@ -27,7 +27,6 @@ for solvent in ['water','tert','sam'] :
             data = np.genfromtxt(datafile,skip_header=27) 
         except IOError : 
             print "No file found for %s %s"%(state,solvent)  
-            index += 1
             continue
         if state == 'folded' : 
             c='b' 
