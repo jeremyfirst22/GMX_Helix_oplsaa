@@ -589,6 +589,74 @@ minimage(){
         fi  
 } 
 
+rdf(){
+    printf "\t\tCalculating RDFs.........................." 
+    if [ ! -f rdf/lys_wat.xvg ] ; then 
+        create_dir rdf
+        cd rdf
+        clean 
+
+        touch empty.ndx 
+        echo "r TBUT & a O" > selection.dat 
+        echo "r SOL & a OW" >> selection.dat 
+        echo "a CD1 or CD2 & r LEU" >> selection.dat 
+        echo "r LYS & a NZ" >> selection.dat 
+        echo "q" >> selection.dat 
+
+        cat selection.dat | gmx make_ndx -f ../Production/$MOLEC.gro \
+            -n empty.ndx \
+            -o index.ndx >> $logFile 2>> $errFile 
+        check index.ndx 
+
+        echo '0 0' | gmx rdf -f ../Production/$MOLEC.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -n index.ndx \
+            -o tba_tba.xvg >> $logFile 2>> $errFile 
+        check tba_tba.xvg
+
+        echo '0 1' | gmx rdf -f ../Production/$MOLEC.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -n index.ndx \
+            -o tba_wat.xvg >> $logFile 2>> $errFile 
+        check tba_wat.xvg 
+
+        echo '1 1' | gmx rdf -f ../Production/$MOLEC.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -n index.ndx \
+            -o wat_wat.xvg >> $logFile 2>> $errFile 
+        check wat_wat.xvg
+
+        echo '2 0' | gmx rdf -f ../Production/$MOLEC.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -n index.ndx \
+            -o leu_tba.xvg >> $logFile 2>> $errFile 
+        check leu_tba.xvg
+
+        echo '2 1' | gmx rdf -f ../Production/$MOLEC.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -n index.ndx \
+            -o leu_wat.xvg >> $logFile 2>> $errFile 
+        check leu_wat.xvg 
+
+        echo '3 0' | gmx rdf -f ../Production/$MOLEC.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -n index.ndx \
+            -o lys_tba.xvg >> $logFile 2>> $errFile 
+        check lys_tba.xvg 
+
+        echo '3 1' | gmx rdf -f ../Production/$MOLEC.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -n index.ndx \
+            -o lys_wat.xvg >> $logFile 2>> $errFile 
+        check lys_wat.xvg 
+
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+} 
+
 printf "\n\t\t*** Program Beginning ***\n\n" 
 cd $MOLEC
 protein_steep
@@ -604,6 +672,7 @@ production
 #dssp 
 #rgyr 
 #minimage
+rdf 
 cd ../
 
 printf "\n\n\t\t*** Program Ending    ***\n\n" 
