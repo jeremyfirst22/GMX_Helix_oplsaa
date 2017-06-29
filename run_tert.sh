@@ -274,8 +274,15 @@ solvate(){
             -o solvated.gro >> $logFile 2>> $errFile 
         check solvated.gro
 
+        gmx editconf -f solvated.gro \
+            -o solvated.pdb >> $logFile 2>> $errFile 
+        check solvated.pdb 
+
+        awk '/H2  NH2/{print;print "TER";next}1' solvated.pdb > temp.pdb
+        mv temp.pdb solvated.pdb
+
         ## 3, 3 -- None, None for terimini options
-        echo '3 3' | gmx pdb2gmx -f solvated.gro \
+        echo '3 3' | gmx pdb2gmx -f solvated.pdb \
             -ff $forceField \
             -water tip3p \
             -p solvated.top \
@@ -296,8 +303,15 @@ solvate(){
             -o neutral.gro >> $logFile 2>> $errFile 
         check neutral.gro 
 
+        gmx editconf -f neutral.gro \
+            -o neutral.pdb >> $logFile 2>> $errFile
+        check neutral.pdb
+
+        awk '/H2  NH2/{print;print "TER";next}1' neutral.pdb > temp.pdb
+        mv temp.pdb neutral.pdb 
+
         ## 3, 3 -- None, None for terimini options
-        echo '3 3' | gmx pdb2gmx -f neutral.gro \
+        echo '3 3' | gmx pdb2gmx -f neutral.pdb \
             -ff $forceField \
             -water tip3p \
             -p neutral.top \
@@ -305,16 +319,12 @@ solvate(){
             -o neutral.gro >> $logFile 2>> $errFile 
         check neutral.top 
 
-        ##Need to rebuild posre_Protein.itp to be only heavy atoms from protein
-        ## pdb2gmx assigns TBUT heavy atoms to restraints called by POSRES, but 
-        ##    we want all solvent molecuels to relax. 
-        rm posre.itp 
-        echo "; Position restraints ONLY for protein heavy atoms" > posre_Protein.itp 
-        echo "[ position_restraints ]" >> posre_Protein.itp 
-        echo "; atom  type      fx      fy      fz" >> posre_Protein.itp 
-        for atom in `tail -n +3 neutral.gro | sed '$ d' | grep -v HOH | grep -v TBUT | grep -v CL | awk '{print $2"\t"$3}' | grep "^[CNOS]" | awk '{print $2}'` ; do 
-            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 1000 1000 1000 >> posre_Protein.itp 
-            done 
+        ##Need to update so that TBUT and ions don't get restrained with protein
+        sed 's/POSRES/POSRES_SOLVENT/' neutral_Solvent2.itp > temp.itp 
+        mv temp.itp neutral_Solvent2.itp 
+
+        sed 's/POSRES/POSRES_IONS/' neutral_Ion3.itp > temp.itp 
+        mv temp.itp neutral_Ion3.itp
 
         clean
         printf "Success\n" 
@@ -331,7 +341,8 @@ solvent_steep(){
         
         cp Solvate/neutral.gro Solvent_steep/. 
         cp Solvate/neutral.top Solvent_steep/. 
-        cp Solvate/*.itp Solvent_steep/. 
+        cp Solvate/neutral_*.itp Solvent_steep/. 
+        cp Solvate/posre_*.itp Solvent_steep/. 
         cd Solvent_steep
 
         gmx grompp -f $MDP/solvent_steep.mdp \
@@ -408,22 +419,6 @@ solvent_npt(){
 production(){
     printf "\t\tProduction run............................" 
     if [ ! -f Production/$MOLEC.nopbc.gro ] ; then 
-#            CA1=$(grep " CA " $MOLEC.npt_relax.gro | grep "GLY" | awk '{print $3}' | head -n1) 
-#            CA2=$(grep " CA " $MOLEC.npt_relax.gro | grep "GLY" | awk '{print $3}' | tail -n1) 
-#            if [[ -z $CA1 || -z $CA2 ]] ; then echo "ERROR: Failed to find CA1 or CA2" ; exit ; fi 
-
-#            echo "[ bonds ]" > distance_restraints.itp 
-#            printf ";%6s%6s%6s%8s%8s%8s%12s\n" ai aj func b0 kb >> distance_restraints.itp 
-#            printf "%6s%6s%6s%8s%8s%8s%12s\n" $CA1 $CA2 6 1.8 1000 >> distance_restraints.itp 
-
-#            if ! grep -sq "distance_restraints.itp" $MOLEC.restraint.top ; then 
-#                awk -v molec=$MOLEC '/.neutral_Protein.itp\"/{print;print"#include \"distance_restraints.itp\" ";next}1' $MOLEC.neutral.top > $MOLEC.restraint.top 
-#                fi 
-
-#            if ! grep -sq "distance_restraints.itp" $MOLEC.restraint.top ; then 
-#                echo "ERROR: distance restraint not added to topology." 
-#                exit 
-#                fi 
         create_dir Production
         
         cp Solvent_npt/neutral.top Production/.
@@ -449,8 +444,9 @@ production(){
         check $MOLEC.gro 
 
         if [ ! -f $MOLEC.nopbc.xtc ] ; then 
-            echo 'System' | gmx trjconv -f $MOLEC.xtc \
+            echo 'Protein System' | gmx trjconv -f $MOLEC.xtc \
                 -s $MOLEC.tpr \
+                -center \
                 -ur rect \
                 -pbc mol \
                 -o $MOLEC.nopbc.xtc >> $logFile 2>> $errFile 
@@ -458,8 +454,9 @@ production(){
         check $MOLEC.nopbc.xtc 
 
         if [ ! -f $MOLEC.nopbc.gro ] ; then 
-            echo 'System' | gmx trjconv -f $MOLEC.gro \
+            echo 'Protein System' | gmx trjconv -f $MOLEC.gro \
                 -s $MOLEC.tpr \
+                -center \
                 -ur rect \
                 -pbc mol \
                 -o $MOLEC.nopbc.gro >> $logFile 2>> $errFile 
@@ -481,27 +478,27 @@ dssp(){
         cd dssp
         clean ##clean early. One of the outputs of gmx do_dssp is a *.dat file. We don't want to delete this while cleaning. 
 
-        #echo 'Protein' | gmx do_dssp -f ../Production/$MOLEC.xtc \
-        #    -s ../Production/$MOLEC.tpr \
-        #    -ver 1 \
-        #    -sss HGI \
-        #    -ssdump ssdump.dat \
-        #    -o ss.xpm \
-        #    -a area.xpm \
-        #    -ta totarea.xvg \
-        #    -aa averarea.xvg \
-        #    -sc scount.xvg >> $logFile 2>> $errFile
-        #check scount.xvg ss.xpm area.xpm 
+        echo 'Protein' | gmx do_dssp -f ../Production/$MOLEC.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -ver 1 \
+            -sss HGI \
+            -ssdump ssdump.dat \
+            -o ss.xpm \
+            -a area.xpm \
+            -ta totarea.xvg \
+            -aa averarea.xvg \
+            -sc scount.xvg >> $logFile 2>> $errFile
+        check scount.xvg ss.xpm area.xpm 
 
-        #gmx xpm2ps -f area.xpm \
-        #    -by 10 \
-        #    -o area.eps >> $logFile 2>> $errFile 
-        #check area.eps
+        gmx xpm2ps -f area.xpm \
+            -by 10 \
+            -o area.eps >> $logFile 2>> $errFile 
+        check area.eps
 
-        #gmx xpm2ps -f ss.xpm \
-        #    -by 10 \
-        #    -o ss.eps >> $logFile 2>> $errFile 
-        #check ss.eps
+        gmx xpm2ps -f ss.xpm \
+            -by 10 \
+            -o ss.eps >> $logFile 2>> $errFile 
+        check ss.eps
 
         ##Cut out helen.nrt from scount.xvg. 
         echo "#!/usr/bin/env python
@@ -604,9 +601,9 @@ solvent_steep
 solvent_nvt
 solvent_npt
 production 
-dssp 
-rgyr 
-minimage
+#dssp 
+#rgyr 
+#minimage
 cd ../
 
 printf "\n\n\t\t*** Program Ending    ***\n\n" 
