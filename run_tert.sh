@@ -162,6 +162,7 @@ print \"%i\t%i\"%(round(nTBA),round(nH2O))" > calc_num_molecules.py
 
         gmx insert-molecules -ci tip3p.pdb \
             -f tert_box.gro \
+            -allpair \
             -nmol $numWat \
             -o mixture.gro >> $logFile 2>> $errFile 
         check mixture.gro 
@@ -672,7 +673,7 @@ production
 #dssp 
 #rgyr 
 #minimage
-rdf 
+#rdf 
 cd ../
 
 printf "\n\n\t\t*** Program Ending    ***\n\n" 
