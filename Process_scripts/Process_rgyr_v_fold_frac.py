@@ -46,6 +46,10 @@ x = data[:-1,1]
 y = (data2[:-1,1] + data2[:-1,2]) / 18
 print len(x), len(y) 
 assert len(x) == len(y) 
+
+while len(x) % binSize !=0 : 
+    x = x[:-1]
+    y = y[:-1]
 assert len(x) % binSize == 0
 assert len(y) % binSize == 0
 
