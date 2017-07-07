@@ -612,24 +612,28 @@ rdf(){
         echo '0 0' | gmx rdf -f ../Production/$MOLEC.xtc \
             -s ../Production/$MOLEC.tpr \
             -n index.ndx \
+            -dt 400 \
             -o tba_tba.xvg >> $logFile 2>> $errFile 
         check tba_tba.xvg
 
         echo '0 1' | gmx rdf -f ../Production/$MOLEC.xtc \
             -s ../Production/$MOLEC.tpr \
             -n index.ndx \
+            -dt 400 \
             -o tba_wat.xvg >> $logFile 2>> $errFile 
         check tba_wat.xvg 
 
         echo '1 1' | gmx rdf -f ../Production/$MOLEC.xtc \
             -s ../Production/$MOLEC.tpr \
             -n index.ndx \
+            -dt 400 \
             -o wat_wat.xvg >> $logFile 2>> $errFile 
         check wat_wat.xvg
 
         echo '2 0' | gmx rdf -f ../Production/$MOLEC.xtc \
             -s ../Production/$MOLEC.tpr \
             -n index.ndx \
+            -dt 400 \
             -o leu_tba.xvg >> $logFile 2>> $errFile 
         check leu_tba.xvg
 
@@ -670,10 +674,10 @@ solvent_steep
 solvent_nvt
 solvent_npt
 production 
-#dssp 
-#rgyr 
-#minimage
-#rdf 
+dssp 
+rgyr 
+minimage
+rdf 
 cd ../
 
 printf "\n\n\t\t*** Program Ending    ***\n\n" 

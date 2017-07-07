@@ -451,6 +451,7 @@ rdf(){
         echo '0 0' | gmx rdf -f ../Production/$MOLEC.xtc \
             -s ../Production/$MOLEC.tpr \
             -n index.ndx \
+            -dt 400 \
             -o wat_wat.xvg >> $logFile 2>> $errFile 
         check wat_wat.xvg
 
@@ -481,9 +482,9 @@ solvent_steep
 solvent_nvt
 solvent_npt
 production 
-#dssp
-#rgyr
-#minimage
+dssp
+rgyr
+minimage
 rdf
 cd ../
 
