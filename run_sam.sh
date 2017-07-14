@@ -8,7 +8,7 @@ glyRest=1000   #kJ/mol/nm
 sulRest=200000 #kJ/mol/nm
 
 usage(){
-    echo "USAGE: $0 <PDB file {molec.pdb} > " 
+    echo "USAGE: $0 <PDB file {molec.pdb} > < simulation time (ns) [default=50ns]>"
     exit
 } 
 
@@ -28,6 +28,12 @@ else
     echo "ERROR: Input file must be PDB file (*.pdb)" 
     exit 
     fi 
+if [ ! -z $2 ] ; then 
+    totSimTime=$2
+else 
+    totSimTime=50
+    fi
+
 if [ ! -d $MOLEC ] ; then mkdir $MOLEC ; fi 
 if [ ! -f $MOLEC/$fileName ] ; then cp $fileName $MOLEC/$MOLEC.pdb ; fi 
 
@@ -629,51 +635,55 @@ system_nvt(){
 
 production(){
     printf "\t\tProduction run............................" 
-    if [ ! -f Production/$MOLEC.nopbc.gro ] ; then 
+    if [ ! -f Production/${MOLEC}_${totSimTime}ns.gro ] ; then 
+        printf "\n" 
         create_dir Production
         
-        cp System_nvt/system.top Production/.
-        cp System_nvt/system_nvt.gro Production/.
-        cp System_nvt/*.itp Production/. 
+        cp Solvent_npt/neutral.top Production/.
+        cp Solvent_npt/solvent_npt.gro Production/.
+        cp Solvent_npt/*.itp Production/. 
         cd Production
 
-        if [ ! -f $MOLEC.gro ] ; then 
-            if [ ! -f $MOLEC.tpr ] ; then 
-                gmx grompp -f $MDP/production_sam.mdp \
-                    -p system.top \
-                    -c system_nvt.gro \
-                    -o $MOLEC.tpr >> $logFile 2>> $errFile 
+        if [ ! -f $MOLEC.tpr ] ; then 
+            gmx grompp -f $MDP/production_solvent.mdp \
+                -p neutral.top \
+            -c solvent_npt.gro \
+            -o $MOLEC.tpr >> $logFile 2>> $errFile 
+        fi 
+        check $MOLEC.tpr 
+
+        simTime=0
+        while [ $simTime -lt $totSimTime ] ; do 
+            ((simTime+=50))
+            printf "\t\t\t%10i ns....................." $simTime
+
+            if [ ! -f ${MOLEC}_${simTime}ns.gro ] ; then 
+                if [ ! -f $simTime.tpr ] ; then 
+                    gmx convert-tpr -s $MOLEC.tpr \
+                        -until $((simTime*1000)) \
+                        -o $simTime.tpr >> $logFile 2>> $errFile 
+                    fi 
+                check $simTime.tpr 
+
+                if [ -f $MOLEC.cpt ] ; then 
+                    gmx mdrun -deffnm $MOLEC \
+                        -s $simTime.tpr \
+                        -cpi $MOLEC.cpt >> $logFile 2>> $errFile  
+                else 
+                    gmx mdrun -deffnm $MOLEC \
+                        -s $simTime.tpr >> $logFile 2>> $errFile
+                    fi 
+                check $MOLEC.gro 
+                mv $MOLEC.gro ${MOLEC}_${simTime}ns.gro 
+                check ${MOLEC}_${simTime}ns.gro 
+                printf "Success\n" 
+            else       
+                printf "Skipped\n" 
                 fi 
-                check $MOLEC.tpr 
+            done 
 
-            if [ -f $MOLEC.cpt ] ; then 
-                gmx mdrun -deffnm $MOLEC -cpi $MOLEC.cpt >> $logFile 2>> $errFile  
-            else 
-                gmx mdrun -deffnm $MOLEC >> $logFile 2>> $errFile 
-                fi 
-            fi 
-        check $MOLEC.gro 
-
-        if [ ! -f $MOLEC.nopbc.xtc ] ; then 
-            echo 'System' | gmx trjconv -f $MOLEC.xtc \
-                -s $MOLEC.tpr \
-                -ur rect \
-                -pbc mol \
-                -o $MOLEC.nopbc.xtc >> $logFile 2>> $errFile 
-            fi 
-        check $MOLEC.nopbc.xtc 
-
-        if [ ! -f $MOLEC.nopbc.gro ] ; then 
-            echo 'System' | gmx trjconv -f $MOLEC.gro \
-                -s $MOLEC.tpr \
-                -ur rect \
-                -pbc mol \
-                -o $MOLEC.nopbc.gro >> $logFile 2>> $errFile 
-            fi 
-        check $MOLEC.nopbc.gro 
-
+        printf "\n" 
         clean
-        printf "Success\n" 
         cd ../
     else
         printf "Skipped\n"
@@ -842,7 +852,7 @@ rdf(){
         fi  
 }
 
-printf "\n\t\t*** Program Beginning ***\n\n"
+printf "\n\t\t*** Program Beginning $MOLEC $totSimTime (ns)***\n\n"
 cd $MOLEC
 build_SAM
 layer_relax
