@@ -821,7 +821,7 @@ rdf(){
         echo "r LYS & a NZ" >> selection.dat 
         echo "q" >> selection.dat 
 
-        cat selection.dat | gmx make_ndx -f ../Production/$MOLEC.gro \
+        cat selection.dat | gmx make_ndx -f ../Production/system_nvt.gro \
             -n empty.ndx \
             -o index.ndx >> $logFile 2>> $errFile 
         check index.ndx 
@@ -854,21 +854,21 @@ rdf(){
 
 printf "\n\t\t*** Program Beginning $MOLEC $totSimTime (ns)***\n\n"
 cd $MOLEC
-build_SAM
-layer_relax
-protein_steep
-solvate
-solvent_steep
-solvent_nvt
-solvent_npt
-build_system
-system_steep
-system_nvt
+#build_SAM
+#layer_relax
+#protein_steep
+#solvate
+#solvent_steep
+#solvent_nvt
+#solvent_npt
+#build_system
+#system_steep
+#system_nvt
 production
-dssp
-rgyr 
-minimage
-rdf 
+#dssp
+#rgyr 
+#minimage
+#rdf 
 cd ../
 
 printf "\n\n\t\t*** Program Ending    ***\n\n"

@@ -45,7 +45,7 @@ for solvent in $solventList ; do
             echo "module load gromacs " >> submit_${mol}_${sol} 
                                                                            
             echo >> submit_${mol}_${sol}
-            echo "bash run_${solvent}.sh StartingStructures/$molec.pdb" >> submit_${mol}_${sol}
+            echo "bash run_${solvent}.sh StartingStructures/$molec.pdb 100" >> submit_${mol}_${sol}
             fi 
         #sbatch submit_${mol}_${sol} 
         bash run_${solvent}.sh StartingStructures/$molec.pdb 

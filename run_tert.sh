@@ -612,7 +612,7 @@ rdf(){
         echo "r LYS & a NZ" >> selection.dat 
         echo "q" >> selection.dat 
 
-        cat selection.dat | gmx make_ndx -f ../Production/$MOLEC.gro \
+        cat selection.dat | gmx make_ndx -f ../Production/solvent_npt.gro \
             -n empty.ndx \
             -o index.ndx >> $logFile 2>> $errFile 
         check index.ndx 
