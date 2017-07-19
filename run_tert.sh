@@ -606,9 +606,9 @@ rdf(){
         clean 
 
         touch empty.ndx 
-        echo "r TBUT & a O" > selection.dat 
+        echo "r TBUT & a C" > selection.dat 
         echo "r SOL & a OW" >> selection.dat 
-        echo "a CD1 or CD2 & r LEU" >> selection.dat 
+        echo "a CD1 or a CD2 & r LEU" >> selection.dat 
         echo "r LYS & a NZ" >> selection.dat 
         echo "q" >> selection.dat 
 
@@ -620,28 +620,24 @@ rdf(){
         echo '0 0' | gmx rdf -f ../Production/$MOLEC.xtc \
             -s ../Production/$MOLEC.tpr \
             -n index.ndx \
-            -dt 400 \
             -o tba_tba.xvg >> $logFile 2>> $errFile 
         check tba_tba.xvg
 
         echo '0 1' | gmx rdf -f ../Production/$MOLEC.xtc \
             -s ../Production/$MOLEC.tpr \
             -n index.ndx \
-            -dt 400 \
             -o tba_wat.xvg >> $logFile 2>> $errFile 
         check tba_wat.xvg 
 
         echo '1 1' | gmx rdf -f ../Production/$MOLEC.xtc \
             -s ../Production/$MOLEC.tpr \
             -n index.ndx \
-            -dt 400 \
             -o wat_wat.xvg >> $logFile 2>> $errFile 
         check wat_wat.xvg
 
         echo '2 0' | gmx rdf -f ../Production/$MOLEC.xtc \
             -s ../Production/$MOLEC.tpr \
             -n index.ndx \
-            -dt 400 \
             -o leu_tba.xvg >> $logFile 2>> $errFile 
         check leu_tba.xvg
 
