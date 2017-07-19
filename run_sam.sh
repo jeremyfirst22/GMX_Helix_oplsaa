@@ -819,6 +819,7 @@ rdf(){
         echo "r SOL & a OW" > selection.dat 
         echo "a CD1 or CD2 & r LEU" >> selection.dat 
         echo "r LYS & a NZ" >> selection.dat 
+        echo "r LIG & a C10" >> selection.dat 
         echo "q" >> selection.dat 
 
         cat selection.dat | gmx make_ndx -f ../Production/system_nvt.gro \
@@ -845,6 +846,18 @@ rdf(){
             -o lys_wat.xvg >> $logFile 2>> $errFile 
         check lys_wat.xvg 
 
+        echo '3 1' | gmx rdf -f ../Production/$MOLEC.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -n index.ndx \
+            -o sam_leu.xvg >> $logFile 2>> $errFile 
+        check sam_leu.xvg 
+
+        echo '3 2' | gmx rdf -f ../Production/$MOLEC.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -n index.ndx \
+            -o sam_lys.xvg >> $logFile 2>> $errFile 
+        check sam_lys.xvg 
+
         printf "Success\n" 
         cd ../
     else
@@ -854,21 +867,21 @@ rdf(){
 
 printf "\n\t\t*** Program Beginning $MOLEC $totSimTime (ns)***\n\n"
 cd $MOLEC
-#build_SAM
-#layer_relax
-#protein_steep
-#solvate
-#solvent_steep
-#solvent_nvt
-#solvent_npt
-#build_system
-#system_steep
-#system_nvt
+build_SAM
+layer_relax
+protein_steep
+solvate
+solvent_steep
+solvent_nvt
+solvent_npt
+build_system
+system_steep
+system_nvt
 production
-#dssp
-#rgyr 
-#minimage
-#rdf 
+dssp
+rgyr 
+minimage
+rdf 
 cd ../
 
 printf "\n\n\t\t*** Program Ending    ***\n\n"
