@@ -5,7 +5,7 @@ projectDir='/Users/jeremyfirst/GMX_Helix_oplsaa'
 rcFile='paper.rc'
 inFile='dssp/helen.nrt'
 saveDir='figures'
-outname='%s/combined_helical.pdf'%saveDir
+outname='%s/combined_helicity.pdf'%saveDir
 
 figCols=2
 figRows=3
@@ -42,7 +42,6 @@ blue = mpatches.Patch([],[],color='b',label=r"$\alpha$-helix")
 green= mpatches.Patch([],[],color='g',label=r"$3_{10}$-helix")
 red  = mpatches.Patch([],[],color='r',label=r"unfolded")
 
-index=0
 for row,solvent in enumerate(['water','sam','tert']): 
     for col,state in enumerate(['folded','unfolded']) : 
         indFig = plt.figure() 
@@ -55,15 +54,12 @@ for row,solvent in enumerate(['water','sam','tert']):
             data = np.genfromtxt(datafile) 
         except IOError : 
             print "No file found for %s %s"%(state,solvent) 
-            index+=1
             continue 
 
         frameNumber = len(data)
         assert frameNumber > 0 
 
         binNumber = frameNumber/binSize
-
-        print "Done reading data...binning" 
 
         y1 = data[:,1] # Alpha 
         y2 = data[:,2] # 3_10 Helix
@@ -72,41 +68,22 @@ for row,solvent in enumerate(['water','sam','tert']):
         y1 /= 18 
         y2 /= 18 
         y3 /= 18 
+
+        while len(y1) %binSize !=0 : 
+            y1 = y1[:-1] 
+            y2 = y2[:-1] 
+            y3 = y3[:-1] 
+        assert len(y1) == len(y2) == len(y3) 
+
+        y1binned = np.mean(y1.reshape(-1,binSize),axis=1) 
+        y2binned = np.mean(y2.reshape(-1,binSize),axis=1) 
+        y3binned = np.mean(y3.reshape(-1,binSize),axis=1) 
         
-        y1binned =[] 
-        y2binned =[] 
-        y3binned =[] 
-
-
-        print frameNumber, " frames"
-        print binSize, " frames per bin"
-        print binNumber, "bins to be graphed"
-
-        for j in range(binNumber):
-            sum1 = 0
-            sum2 = 0
-            sum3 = 0
-        
-            for i in range(binSize):
-                sum1 += y1[i + j*binSize]
-                sum2 += y2[i + j*binSize] 
-                sum3 += y3[i + j*binSize] 
-        
-            y1binned.append(sum1/binSize)
-            y2binned.append(sum2/binSize)
-            y3binned.append(sum3/binSize)
-
-        y1binned = np.array(y1binned)
-        y2binned = np.array(y2binned)
-        y3binned = np.array(y3binned)
-
-        print "Data binned.... now plotting"
         #rc_file('%s/rc_files/%s'%(projectDir,rcFile) ) 
         
         x = data[:,0] 
         x = np.linspace(0,np.max(data[:,0]),binNumber) 
         x /= 1000 
-        #x = np.linspace(0,binSize*binNumber/ 10,binNumber) 
         
         ax.fill_between(x,0                ,y3binned         ,facecolor='r',linewidth=0.0)
         ax.fill_between(x,y3binned         ,y3binned+y2binned,facecolor='g',linewidth=0.0) 
@@ -115,8 +92,6 @@ for row,solvent in enumerate(['water','sam','tert']):
         indAx.fill_between(x,0                ,y3binned         ,facecolor='r',linewidth=0.0)
         indAx.fill_between(x,y3binned         ,y3binned+y2binned,facecolor='g',linewidth=0.0) 
         indAx.fill_between(x,y3binned+y2binned,1                ,facecolor='b',linewidth=0.0) 
-        
-        print "Data plotted.... now labeling"
         
         ax.set_xlim(0,np.max(x)) 
         ax.set_ylim(0,1)
@@ -129,22 +104,19 @@ for row,solvent in enumerate(['water','sam','tert']):
         indFig.legend( [blue,green,red],[r"$\alpha$-helix",r"$3_{10}$-helix",r"unfolded"], 
             loc = 'center', bbox_to_anchor=(0.90, 0.5),
             fontsize='medium') 
-        indFig.savefig("%s/binned_%s_%s.pdf"%(saveDir,state,solvent), format='pdf')
+        indFig.savefig("%s/helicity_%s_%s.pdf"%(saveDir,state,solvent), format='pdf')
         plt.close(indFig) 
-
-        index+=1
+        print "%9s %9s plot complete"%(state,solvent)  
 
 #fig.legend(handles=[blue, green, red],loc=4)
 fig.legend( [blue,green,red],[r"$\alpha$-helix",r"$3_{10}$-helix",r"unfolded"], 
     loc = 'center', bbox_to_anchor=(0.90, 0.5),
     fontsize='medium') 
 
-print "Plot labeled.... now saving"
-
 fig.savefig(outname, format='pdf')
 plt.close()
-print "plot saved to ", outname
 
+print "Combined plot complete." 
 
 
 
