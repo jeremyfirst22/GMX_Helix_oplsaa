@@ -34,7 +34,7 @@ if not os.path.isdir(saveDir) :
     os.mkdir(saveDir) 
 
 fig, axarr = plt.subplots(figRows, figCols, sharex='col',sharey='row') 
-fig.subplots_adjust(wspace=0.1,hspace=0.25,left=0.1,bottom=0.1,right=0.80,top=0.9) 
+fig.subplots_adjust(wspace=0.1,hspace=0.25,left=0.1,bottom=0.1,right=0.8,top=0.9) 
 fig.text(0.5,0.05, xLabel, ha='center', va='center') 
 fig.text(0.05,0.5, yLabel, ha='center', va='center',rotation='vertical') 
 
@@ -43,7 +43,7 @@ fig.text(0.05,0.5, yLabel, ha='center', va='center',rotation='vertical')
 for row, solvent in enumerate(['water','sam','tert']) : 
     for col,state in enumerate(['folded','unfolded']) : 
         indFig = plt.figure() 
-        indAx = indFig.add_axes([0.1,0.1,0.7, 0.8]) 
+        indAx = indFig.add_axes([0.1,0.1,0.9, 0.8]) 
         indFig.text(0.5,0.05, xLabel, ha='center', va='center') 
         indFig.text(0.05,0.5, yLabel, ha='center', va='center',rotation='vertical') 
         outnameInd = "%s/rgyr_v_fold_frac_%s_%s.pdf"%(saveDir,solvent,state) 
@@ -83,20 +83,27 @@ for row, solvent in enumerate(['water','sam','tert']) :
         xs = np.mean(x.reshape(-1,binSize),axis=1) 
         ys = np.mean(y.reshape(-1,binSize),axis=1) 
         
-        colors = cm.brg(np.linspace(0,1,len(ys)) ) 
+        #colors = cm.brg(np.linspace(0,1,len(ys)) ) 
+        cm = plt.cm.get_cmap('brg') 
+        z = np.arange(0,len(ys) ) 
+        z = z*binSize*4/1000
         for plot in ax, indAx : 
             plot.plot(xs,ys,color='k',alpha=0.5,zorder=1 ) 
-            for x, y, c in zip(xs,ys, colors) : 
-                plot.scatter(x ,y,color=c,edgecolor='none',s=40,alpha=1,zorder=2) 
+            sc = plot.scatter(xs ,ys,c=z,edgecolor='none',s=40,alpha=1,zorder=2,vmin=0,vmax=max(z)+1) #frames -> ns
             plot.set_xlim(0.8, 1.8) 
             plot.set_ylim(0,1.0) 
+        cbarInd = plt.colorbar(sc) 
+        cbarInd.set_label('Time (ns)',rotation='vertical') 
+        #indFig.colorbar(indAx) 
         #indAx.set_xlabel(xLabel) 
         #indAx.set_ylabel(yLabel,rotation='vertical') 
 
         indFig.savefig(outnameInd, format='pdf')
         plt.close(indFig)
 
-
+cbar_ax = fig.add_axes([0.85, 0.15, 0.03, 0.7])
+cbar = fig.colorbar(sc, cax=cbar_ax) 
+cbar.set_label('Time (ns)',rotation='vertical') 
 fig.savefig(outname, format='pdf')
 plt.close() 
 
