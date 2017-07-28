@@ -6,7 +6,6 @@ from os import sys
 from matplotlib.colors import LogNorm
 import matplotlib.lines as mlines 
 
-xmax=100 ##ns
 cutoff = 10 ##Electrostatic cutoff distance (Angstroms) 
 
 figCols=1
@@ -21,6 +20,7 @@ fig.text(0.5,0.05, "Time (ns)", ha='center', va='center')
 fig.text(0.05,0.5, r"Distance to nearest image ($\AA$)", ha='center', va='center',rotation='vertical') 
 
 index=0
+xmax=50##Starting xlim
 for solvent in ['water','tert','sam'] : 
     ax = axarr[index%figRows]
     for state in ['folded','unfolded'] : 
@@ -41,6 +41,9 @@ for solvent in ['water','tert','sam'] :
 
         data[:,0] = data[:,0] / 1000 
         data[:,1] = data[:,1] * 10 # nm -> Angstroms
+        
+        if data[:,0].max() > xmax : 
+            xmax = data[:,0].max() 
 
         rvdw = np.full(len(data[:,1]),cutoff) 
 
