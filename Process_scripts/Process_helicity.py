@@ -42,7 +42,8 @@ blue = mpatches.Patch([],[],color='b',label=r"$\alpha$-helix")
 green= mpatches.Patch([],[],color='g',label=r"$3_{10}$-helix")
 red  = mpatches.Patch([],[],color='r',label=r"unfolded")
 
-for row,solvent in enumerate(['water','sam','tert']): 
+xmax=50
+for row,solvent in enumerate(['water','tert','sam']): 
     for col,state in enumerate(['folded','unfolded']) : 
         indFig = plt.figure() 
         indAx = indFig.add_axes([0.1, 0.1, 0.7, 0.8])
@@ -84,6 +85,8 @@ for row,solvent in enumerate(['water','sam','tert']):
         x = data[:,0] 
         x = np.linspace(0,np.max(data[:,0]),binNumber) 
         x /= 1000 
+        if x.max() > xmax : 
+            xmax = x.max()
         
         ax.fill_between(x,0                ,y3binned         ,facecolor='r',linewidth=0.0)
         ax.fill_between(x,y3binned         ,y3binned+y2binned,facecolor='g',linewidth=0.0) 
@@ -97,7 +100,7 @@ for row,solvent in enumerate(['water','sam','tert']):
         ax.set_ylim(0,1)
         ax.set_title("%s %s"%(state,solvent)) 
 
-        indAx.set_xlim(0,np.max(x)) 
+        indAx.set_xlim(0,xmax) 
         indAx.set_ylim(0,1)
         indAx.set_title("%s %s"%(state,solvent)) 
     

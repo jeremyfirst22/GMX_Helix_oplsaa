@@ -40,7 +40,7 @@ fig.text(0.05,0.5, yLabel, ha='center', va='center',rotation='vertical')
 
 #legend
 
-for row, solvent in enumerate(['water','sam','tert']) : 
+for row, solvent in enumerate(['water','tert','sam']) : 
     for col,state in enumerate(['folded','unfolded']) : 
         indFig = plt.figure() 
         indAx = indFig.add_axes([0.1,0.1,0.9, 0.8]) 
@@ -89,9 +89,11 @@ for row, solvent in enumerate(['water','sam','tert']) :
         z = z*binSize*4/1000
         for plot in ax, indAx : 
             plot.plot(xs,ys,color='k',alpha=0.5,zorder=1 ) 
-            sc = plot.scatter(xs ,ys,c=z,edgecolor='none',s=40,alpha=1,zorder=2,vmin=0,vmax=max(z)+1) #frames -> ns
             plot.set_xlim(0.8, 1.8) 
             plot.set_ylim(0,1.0) 
+            plot.set_title('%s %s'%(state, solvent)) 
+        sc = indAx.scatter(xs ,ys,c=z,edgecolor='none',s=40,alpha=1,zorder=2,vmin=0,vmax=max(z)+1) #frames -> ns
+        ax.scatter(xs,ys,c=z,edgecolor='none',s=20, alpha=1, zorder=2, vmin=0, vmax=max(z)+1) 
         cbarInd = plt.colorbar(sc) 
         cbarInd.set_label('Time (ns)',rotation='vertical') 
         #indFig.colorbar(indAx) 
