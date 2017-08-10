@@ -1,7 +1,10 @@
 #!/bin/bash
 
 #dim=5.964
-numMols=15
+numMols=14
+if [ $((numMols%2)) -ne 0 ] ; then 
+    echo "ERROR: numMols must be even for sam layer to tesselate" 
+    exit ; fi 
 spacing=0.497 ##nm 
 glyDist=0.6822 ##nm from geometry optimization, Spartan '16, DFT wB97X-D, 6-311+g**
 glyRest=1000   #kJ/mol/nm
@@ -169,7 +172,7 @@ for i in range(numMols) :
         echo "[ position_restraints ]" > posre_SUL.itp 
         echo ";; Pin sulfur atoms to spacing found on SAM" >> posre_SUL.itp 
         for atom in `grep LIG boxed.gro | grep S1 | awk '{print $3}'` ; do 
-            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 $sulRest $sulRest $sulRest >> posre_SUL.itp 
+            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 0 0 $sulRest >> posre_SUL.itp 
         done 
 
         zshift=`grep LIG boxed.gro | grep " H22 " | awk '{print $6}' | sort -n | uniq | head -n1`
