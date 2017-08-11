@@ -53,6 +53,7 @@ for sol in 'tert', 'water', 'sam' :
             plt.xlabel(r"r (nm)") 
             plt.ylabel(r"p(r)") 
             plt.xlim([0,2]) 
+            plt.gca().set_ylim(bottom=0) 
 
             blu_lin = mlines.Line2D([],[],linestyle='-',color='b',label="folded") 
             gre_lin = mlines.Line2D([],[],linestyle='-',color='g',label="unfolded") 
