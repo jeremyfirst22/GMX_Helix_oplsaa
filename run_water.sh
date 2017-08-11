@@ -1,41 +1,51 @@
 #!/bin/bash
 
 dim=7.455
+fileName=StartingStructures/folded.pdb
 
 usage(){
-    echo "USAGE: $0 <PDB file {molec.pdb} > < simulation time (ns) [default=50ns]>"
+    echo "USAGE: $0 <Production/analysis: folded/unfolded> < simulation time (ns) [default=50ns]>"
     exit 
 }
 
-if [ -z $1 ] ; then 
-    usage 
-    fi 
-
-fileName=$1 
 if [ ! -f $fileName ] ; then 
     echo "ERROR: $fileName not found " 
     exit 
     fi 
 if [[ $fileName == *.pdb ]] ; then 
-    MOLEC=$(basename $fileName)
-    MOLEC=${MOLEC%.*}_water
+    SOL='water'
+    MOLEC=folded_$SOL
 else 
     echo "ERROR: Input file must be PDB file (*.pdb)" 
     exit 
     fi 
+
+if [ ! -z $1 ] ; then 
+    fold=$1
+    if [[ $fold != 'folded' && $fold != 'unfolded' ]] ; then 
+        echo "ERROR: $fold not recognized"
+        usage
+        fi 
+else 
+    echo "ERROR: Must specify folded/unfoled" 
+    usage
+    fi 
+
 if [ ! -z $2 ] ; then 
     totSimTime=$2
 else 
     totSimTime=50
     fi
 
-if [ ! -d $MOLEC ] ; then mkdir $MOLEC ; fi 
-if [ ! -f $MOLEC/$fileName ] ; then cp $fileName $MOLEC/$MOLEC.pdb ; fi 
+if [ ! -d $SOL ] ; then mkdir $SOL ; fi 
+if [ ! -d $SOL/prep ] ; then mkdir $SOL/prep ; fi 
+if [ ! -d $SOL/$fold ] ; then mkdir $SOL/$fold ; fi 
+#if [ ! -f $MOLEC/$fileName ] ; then cp $fileName $MOLEC/. ; fi 
 
 TOP=${PWD}
 MDP=$TOP/mdp_files
-logFile=$TOP/$MOLEC/$MOLEC.log 
-errFile=$TOP/$MOLEC/$MOLEC.err 
+logFile=$TOP/$SOL/prep/prep.log
+errFile=$TOP/$SOL/prep/prep.err
 FF=$TOP/GMXFF
 forceField=oplsaa
 if [ ! -d $FF/$forceField.ff ] ; then 
@@ -74,16 +84,30 @@ create_dir(){
         fi 
 }
 
+prep(){
+    if [ ! -d prep ] ; then mkdir prep ; fi 
+    cd prep
+    protein_steep
+    solvate
+    solvent_steep
+    solvent_nvt
+    solvent_npt
+    heating
+    heated
+    cooling
+    cd ../
+}
+
 protein_steep(){
     printf "\t\tProtein steep............................." 
     if [ ! -f Protein_steep/protein_steep.gro ] ; then 
         create_dir Protein_steep
         
-        cp $MOLEC.pdb Protein_steep/.
+        cp $TOP/$fileName Protein_steep/.
         cd Protein_steep
 
         ## 3, 3 -- None, None for termini options
-        echo '3 3' | gmx pdb2gmx -f $MOLEC.pdb \
+        echo '3 3' | gmx pdb2gmx -f $(basename $fileName) \
             -p $MOLEC.top \
             -ff $forceField \
             -ter \
@@ -238,6 +262,94 @@ solvent_npt(){
 
         gmx mdrun -deffnm solvent_npt >> $logFile 2>> $errFile 
         check solvent_npt.gro 
+
+        clean
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
+heating(){
+    printf "\t\tHeating solution to 900K.................." 
+    if [ ! -f Heating/heating.gro ] ; then 
+        create_dir Heating
+        
+        cp Solvent_npt/solvent_npt.gro Heating/. 
+        cp Solvent_npt/neutral.top Heating/. 
+        cp Solvent_npt/*.itp Heating/. 
+        cd Heating
+
+        gmx grompp -f $MDP/prep_heating.mdp \
+            -c solvent_npt.gro \
+            -p neutral.top \
+            -o heating.tpr >> $logFile 2>> $errFile  
+        check heating.tpr 
+
+        gmx mdrun -deffnm heating >> $logFile 2>> $errFile 
+        check heating.gro 
+
+        clean
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
+heated(){
+    printf "\t\tNVT simulation at 900K...................." 
+    if [ ! -f Heated_nvt/heated_nvt.gro ] ; then 
+        create_dir Heated_nvt
+        
+        cp Heating/heating.gro Heated_nvt/. 
+        cp Heating/neutral.top Heated_nvt/. 
+        cp Heating/*.itp Heated_nvt/. 
+        cd Heated_nvt
+
+        gmx grompp -f $MDP/prep_heated.mdp \
+            -c heating.gro \
+            -p neutral.top \
+            -o heated_nvt.tpr >> $logFile 2>> $errFile 
+        check heated_nvt.tpr
+
+        gmx mdrun -deffnm heated_nvt >> $logFile 2>> $errFile 
+        check heated_nvt.gro 
+
+        clean
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
+cooling(){
+    printf "\t\tCooling solution to 300K.................." 
+    if [ ! -f Cooling/cooling.gro ] ; then 
+        create_dir Cooling
+        
+        cp Heated_nvt/heated_nvt.gro Cooling/. 
+        cp Heated_nvt/neutral.top Cooling/. 
+        cp Heated_nvt/*.itp Cooling/. 
+        cd Cooling
+
+        gmx grompp -f $MDP/prep_cooling.mdp \
+            -c heated_nvt.gro \
+            -p neutral.top \
+            -o cooling.tpr >> $logFile 2>> $errFile 
+        check cooling.tpr
+
+        gmx mdrun -deffnm cooling >> $logFile 2>> $errFile 
+        check cooling.gro 
+
+        echo "Protein-H Protein-H" | gmx trjconv -s cooling.tpr \
+            -f cooling.gro \
+            -o unfolded.pdb \
+            -center \
+            -ur compact \
+            -pbc mol 
 
         clean
         printf "Success\n" 
@@ -465,18 +577,15 @@ rdf(){
         fi  
 }
 
-printf "\n\t\t*** Program Beginning $MOLEC $totSimTime (ns)***\n\n" 
-cd $MOLEC
-#protein_steep
-#solvate
-#solvent_steep
-#solvent_nvt
-#solvent_npt
+printf "\n\t\t*** Program Beginning $SOL_$fold $totSimTime (ns)***\n\n" 
+cd $SOL
+prep
+cd $fold 
 production 
-#dssp
-#rgyr
-#minimage
-#rdf
-cd ../
+dssp
+rgyr
+minimage
+rdf
+cd ../../
 
 printf "\n\n\t\t*** Program Ending    ***\n\n" 
