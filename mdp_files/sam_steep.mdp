@@ -1,5 +1,4 @@
 integrator               = steep
-; define                   = -DPOSRES
 define                  = -DPOSSULRES
 
 nsteps                   = 10000

@@ -329,9 +329,11 @@ solvate(){
         ##Need to update so that TBUT and ions don't get restrained with protein
         sed 's/POSRES/POSRES_SOLVENT/' neutral_Solvent2.itp > temp.itp 
         mv temp.itp neutral_Solvent2.itp 
+        check neutral_Solvent2.itp 
 
         sed 's/POSRES/POSRES_IONS/' neutral_Ion3.itp > temp.itp 
         mv temp.itp neutral_Ion3.itp
+        check neutral_Ion3.itp 
 
         clean
         printf "Success\n" 
