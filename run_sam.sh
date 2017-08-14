@@ -1,71 +1,248 @@
 #!/bin/bash
+## Jeremy First
 
-#dim=5.964
+TOP=${PWD}
+MDP=$TOP/mdp_files
+FF=$TOP/GMXFF
+forceField=oplsaa
 numMols=14
-if [ $((numMols%2)) -ne 0 ] ; then 
-    echo "ERROR: numMols must be even for sam layer to tesselate" 
-    exit ; fi 
+decanethiolFile=$TOP/StartingStructures/decanethiol.pdb 
 spacing=0.497 ##nm 
 glyDist=0.6822 ##nm from geometry optimization, Spartan '16, DFT wB97X-D, 6-311+g**
 glyRest=1000   #kJ/mol/nm
 sulRest=200000 #kJ/mol/nm
+fileName=$TOP/StartingStructures/folded.pdb
+totSimTime=50
+SOL=sam
+MOLEC=folded_$SOL
+
+verbose=false
+analysis=false
 
 usage(){
-    echo "USAGE: $0 <PDB file {molec.pdb} > < simulation time (ns) [default=50ns]>"
+    echo "USAGE: $0 -f prep/folded/unfolded [ options ]" 
+    exit 
+}
+
+HELP(){
+    echo 
+    echo "This program runs molecular dynamic simulations of a peptide on a SAM surface" 
+    echo 
+    echo "Usage: $0 [options] "
+    echo "  -f   folded, unfolded, or prep. Mandatory" 
+    echo "  -c   Starting structure  (folded) PDB file: Default = StartingStructures/folded.pdb"
+    echo "  -t   Maximum simulation time (ns) : Default = 50 "
+    echo "  -a   Perform analyis on trajectory : Default = no"
+    echo "  -n   Number of decanethiol molecules in each direction of the layer : Default = 14" 
+    echo "  -d   Decanethiol structure PDB file : Default = StartingStructures/decanethiol.pdb" 
+    echo "  -D   Distance (nm) between each decanethiol molecule : Default = 0.497" 
+    echo "  -g   Distnace (nm) between the alpha carbon of glycines to C10 of the SAM layer" 
+    echo "              Default = 0.6822 from Geoemetry optimization, Spartan '16, DFT wB97X-D, 6-311+g**"
+    echo "  -r   Restraint force constant (kJ/mol/nm) of the "bond" from glycine to nearest decanethiol C10"
+    echo "              Default = 1000 "
+    echo "  -R   Restraint force constant (kJ/mol/nm) of the "bond" keeping sulfur atoms in plane" 
+    echo "              Default = 200000" 
+    echo "  -m   Location of the mdp_files : Default = mdp_files"
+    echo "  -p   Location of force field files. : Default = GMXFF"
+    echo "  -n   Name of force field : Default = oplsaa"
+    echo "  -v   Print all options and quit." 
+    echo "  -h   print this usage and exit "
+    echo "" 
     exit
+}
+
+while getopts :f:c:t:an:d:D:g:r:R:m:p:n:vh opt; do 
+   case $opt in 
+      f) 
+        fold=$OPTARG
+        ;; 
+      c)
+        fileName=${TOP}/$OPTARG
+        ;; 
+      t)
+        totSimTime=$OPTARG
+        ;; 
+      a) 
+        analysis=true
+        ;; 
+      d) 
+        decanethiolFile=${TOP}/$OPTARG
+        ;; 
+      D) 
+        spacing=$OPTARG
+        ;; 
+      g) 
+        glyDist=$OPTARG
+        ;; 
+      r) 
+        glyRest=$OPTARG
+        ;; 
+      R) 
+        sulRest=$OPTARG
+        ;; 
+      m) 
+        MDP=${TOP}/$OPTARG
+        ;; 
+      p) 
+        FF=${TOP}/$OPTARG
+        ;; 
+      n) 
+        forceField=$OPTARG
+        ;; 
+      v) 
+        verbose=true
+        ;; 
+      :) 
+        echo " option -$OPTARG requires an argument! "
+        usage
+        ;; 
+      h)
+        HELP
+        ;; 
+      \?) 
+        echo "Invalid option -$OPTARG "
+        HELP 
+        ;; 
+   esac
+   done 
+
+main(){
+    logFile=$TOP/$SOL/$fold/$fold.log
+    errFile=$TOP/$SOL/$fold/$fold.err
+    checkInput
+    printf "\n\t\t*** Program Beginning $SOL_$fold $totSimTime (ns)***\n\n" 
+    if [ ! -d $SOL ] ; then mkdir $SOL ; fi 
+    cd $SOL
+    if [ $fold == "prep" ] ; then 
+        prep
+    else  
+        production 
+        if $analysis ; then 
+            analysis
+            fi 
+        cd ../
+        fi 
+    cd ../
+    printf "\n\n\t\t*** Program Ending    ***\n\n" 
+}
+
+prep(){
+    if [ ! -d prep ] ; then mkdir prep ; fi 
+    cd prep
+    build_SAM
+    layer_relax
+    protein_steep
+    solvate
+    solvent_steep
+    solvent_nvt
+    solvent_npt
+    build_system
+    system_steep
+    system_nvt
+    heating
+    heated
+    cooling
+    cd ../
+}
+
+analysis(){
+    if [ ! -d $fold ] ; then mkdir $fold ; fi 
+    dssp
+    rgyr
+    minimage
+    rdf
+}
+
+checkInput(){
+    if $verbose ; then 
+        echo "Folded state : $fold" 
+        echo "Input file name: $fileName"
+        echo "Max simultaiton time: $totSimTime"
+        echo "Number of decanethiols: $numMols" 
+        echo "Decanethiol starting structure : $decanethiolFile" 
+        echo "Distance between each decanethiol : $spacing"
+        echo "Distance of glycine to SAM : $glyDist" 
+        echo "Glycine restraint : $glyRest"
+        echo "Sulfur restraint : $sulRest" 
+        echo "Perform analysis : $analysis " 
+        echo "Verbose = $verbose"
+        echo "mdp files = $MDP " 
+        echo "force field directory = $FF" 
+        echo "force field name = $forceField " 
+        echo "Log file = $logFile " 
+        echo "Error file = $errFile " 
+        echo ""
+        exit 
+        fi 
+    
+    if [ ! -f $fileName ] ; then 
+        echo "ERROR: $fileName not found " 
+        exit 
+        fi 
+    if [[ $fileName != *.pdb ]] ; then 
+        echo "ERROR: Input file must be PDB file (*.pdb)" 
+        exit 
+        fi 
+    if [ ! -f $decanethiolFile ] ; then 
+        echo "ERROR: $decanethiolFile not found " 
+        exit 
+        fi 
+    if [[ $decanethiolFile != *.pdb ]] ; then 
+        echo "ERROR: Input file must be PDB file (*.pdb)" 
+        exit 
+        fi 
+    if [ ! -z $fold ] ; then 
+        if [[ $fold != 'folded' && $fold != 'unfolded' && $fold != 'prep' ]] ; then 
+            echo "ERROR: $fold not recognized"
+            HELP
+            fi 
+    else 
+        echo "ERROR: Must specify folded/unfoled" 
+        usage
+        fi 
+    if [ $((numMols%2)) -ne 0 ] ; then 
+        echo "ERROR: numMols must be even for sam layer to tesselate" 
+        exit 
+        fi 
+    if [[ $glyDist < 0 ]] ; then 
+        echo "ERROR: Glycine distance to SAM must be larger than zero" 
+        exit 
+        fi 
+    if [[ $spacing < 0 ]] ; then 
+        echo "ERROR: spacing between dcanethiols must be larger than zero" 
+        exit 
+        fi 
+    if [[ $glyRest < 0 ]] ; then 
+        echo "ERROR: glycine restraint force constant must be larger than zero" 
+        exit 
+        fi 
+    if [[ $sulRest < 0 ]] ; then 
+        echo "ERROR: sulfur restraint force constant must be larger than zero" 
+        exit 
+        fi 
+    if [ $totSimTime -le 0 ] ; then 
+        echo "ERROR: Total simulation time must be larger than 0" 
+        exit 
+        fi 
+    if [ ! -d $FF/$forceField.ff ] ; then 
+        echo ; echo "ERROR: FF not found" 
+        exit
+        fi  
+    if [ ! -d $MDP ] ; then 
+        echo ; echo "ERROR: mdp files directory not found" 
+        exit 
+        fi 
+    check $MDP $fileName $FF $FF/$forceField.ff 
 } 
 
-if [ -z $1 ] ; then 
-    usage 
-    fi 
-
-fileName=$1
-if [ ! -f $fileName ] ; then 
-    echo "ERROR: $fileName not found " 
-    exit 
-    fi 
-if [[ $fileName == *.pdb ]] ; then 
-    MOLEC=$(basename $fileName) 
-    MOLEC=${MOLEC%.*}_sam
-else 
-    echo "ERROR: Input file must be PDB file (*.pdb)" 
-    exit 
-    fi 
-if [ ! -z $2 ] ; then 
-    totSimTime=$2
-else 
-    totSimTime=50
-    fi
-
-if [ ! -d $MOLEC ] ; then mkdir $MOLEC ; fi 
-if [ ! -f $MOLEC/$fileName ] ; then cp $fileName $MOLEC/$MOLEC.pdb ; fi 
-
-TOP=${PWD}
-MDP=$TOP/mdp_files
-logFile=$TOP/$MOLEC/$MOLEC.log
-errFile=$TOP/$MOLEC/$MOLEC.err
-FF=$TOP/GMXFF
-forceField=oplsaa
-if [ ! -d $FF/$forceField.ff ] ; then 
-    echo ; echo "ERROR: FF not found" 
-    exit
-    fi 
-
-if [ -f StartingStructures/decanethiol.pdb ] ; then 
-    cp StartingStructures/decanethiol.pdb $MOLEC/. 
-else 
-    echo ; echo "ERROR: StartingStructures/decanethiol.pdb" 
-    exit
-    fi 
-
 check(){
-    for arg in $@ ; do 
-        if [ ! -s $arg ] ; then
-            echo "ERROR: $arg missing. Exitting" 
+   for arg in $@ ; do 
+        if [ ! -s $arg ] ; then 
+            echo ; echo "ERROR: $arg missing. Exitting" 
             exit 
             fi 
         done 
-} 
+}
 
 clean(){
     if [ -d $forceField.ff ] ; then rm -r $forceField.ff *.dat ; fi 
@@ -73,20 +250,20 @@ clean(){
 
 create_dir(){
     if [ -z $1 ] ; then 
-        echo "ERROR: create_dir requires argument. " ; exit ; fi  
+        echo "ERROR: create_dir requires argument. " ; exit ; fi 
 
     dirName=$1 
-    if [ ! -d $dirName ] ; then mkdir $dirName ; fi  
+    if [ ! -d $dirName ] ; then mkdir $dirName ; fi 
     
     if [ ! -d $dirName/$forceField.ff ] ; then 
-           if [ -d $FF/$forceField.ff ] ; then 
-               cp -r $FF/$forceField.ff $dirName
-               cp $FF/*.dat $dirName 
-           else 
-               echo "FF not found" 
-               exit 
-               fi  
-           fi  
+        if [ -d $FF/$forceField.ff ] ; then 
+            cp -r $FF/$forceField.ff $dirName
+            cp $FF/*.dat $dirName/. 
+        else 
+            echo "FF not found" 
+            exit 
+            fi 
+        fi 
 }
 
 build_SAM(){
@@ -94,8 +271,8 @@ build_SAM(){
     if [ ! -f Build_SAM/bottom.gro ] ; then 
         create_dir Build_SAM 
         
-        cp $MOLEC.pdb Build_SAM/. 
-        cp decanethiol.pdb Build_SAM/. 
+        #cp $MOLEC.pdb Build_SAM/. 
+        cp $decanethiolFile Build_SAM/decanethiol.pdb 
         cd Build_SAM
 
         echo 'LIG' | gmx editconf -f decanethiol.pdb \
@@ -246,11 +423,11 @@ protein_steep(){
     if [ ! -f Protein_steep/protein_steep.gro ] ; then 
         create_dir Protein_steep
         
-        cp $MOLEC.pdb Protein_steep/.
+        cp $fileName Protein_steep/.
         cd Protein_steep
 
         ## 3, 3 -- None, None for termini options
-        echo '3 3' | gmx pdb2gmx -f $MOLEC.pdb \
+        echo '3 3' | gmx pdb2gmx -f $(basename $fileName) \
             -p $MOLEC.top \
             -ff $forceField \
             -ter \
@@ -272,19 +449,9 @@ protein_steep(){
 
         ## 90 deg around z axis puts long axis in long dimension of box
         ## 60 or 30 deg around x axis puts CA of Gly at bottom, with Leus closest to SAM
-        if [[ "$MOLEC" == "folded_"* ]] ; then 
-            gmx editconf -f aligned.gro \
-                -rotate -60 0 90 \
-                -o rotated.gro >> $logFile 2>> $errFile 
-        elif [[ "$MOLEC" == "unfolded_"* ]] ; then 
-            gmx editconf -f aligned.gro \
-                -rotate 30 0 90 \
-                -o rotated.gro >> $logFile 2>> $errFile 
-        else 
-            echo "ERROR: I don't know how to orient the protein!" 
-            echo "$MOLEC" 
-            exit 
-            fi 
+        gmx editconf -f aligned.gro \
+            -rotate -60 0 90 \
+            -o rotated.gro >> $logFile 2>> $errFile 
         check rotated.gro 
 
         ##This is the distance to the edge of the box. 
@@ -374,7 +541,8 @@ solvent_steep(){
         
         cp Solvate/neutral.gro Solvent_steep/. 
         cp Solvate/neutral.top Solvent_steep/. 
-        cp Solvate/*.itp Solvent_steep/. 
+        cp Solvate/neutral_*.itp Solvent_steep/. 
+        cp Solvate/posre_*.itp Solvent_steep/. 
         cd Solvent_steep
 
         gmx grompp -f $MDP/solvent_steep.mdp \
@@ -587,7 +755,8 @@ system_steep(){
         
         cp Build_system/system.top System_steep/.
         cp Build_system/system.gro System_steep/.
-        cp Build_system/*.itp System_steep/. 
+        cp Build_system/system_*.itp System_steep/. 
+        cp Build_system/posre_*.itp System_steep/. 
         #cp Relax_SAM/*.itp System_steep/. 
         cd System_steep
 
@@ -636,21 +805,129 @@ system_nvt(){
         fi  
 } 
 
+heating(){
+    printf "\t\tHeating solution to 900K.................." 
+    if [ ! -f Heating/heating.gro ] ; then 
+        create_dir Heating
+        
+        cp System_nvt/system_nvt.gro Heating/. 
+        cp System_nvt/system.top Heating/. 
+        cp System_nvt/*.itp Heating/. 
+        cd Heating
+
+        gmx grompp -f $MDP/prep_heating.mdp \
+            -c system_nvt.gro \
+            -p system.top \
+            -o heating.tpr >> $logFile 2>> $errFile  
+        check heating.tpr 
+
+        gmx mdrun -deffnm heating >> $logFile 2>> $errFile 
+        check heating.gro 
+
+        clean
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
+heated(){
+    printf "\t\tNVT simulation at 900K...................." 
+    if [ ! -f Heated_nvt/heated_nvt.gro ] ; then 
+        create_dir Heated_nvt
+        
+        cp Heating/heating.gro Heated_nvt/. 
+        cp Heating/system.top Heated_nvt/. 
+        cp Heating/*.itp Heated_nvt/. 
+        cd Heated_nvt
+
+        gmx grompp -f $MDP/prep_heated.mdp \
+            -c heating.gro \
+            -p system.top \
+            -o heated_nvt.tpr >> $logFile 2>> $errFile 
+        check heated_nvt.tpr
+
+        gmx mdrun -deffnm heated_nvt >> $logFile 2>> $errFile 
+        check heated_nvt.gro 
+
+        clean
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
+cooling(){
+    printf "\t\tCooling solution to 300K.................." 
+    if [ ! -f Cooling/cooling.gro ] ; then 
+        create_dir Cooling
+        
+        cp Heated_nvt/heated_nvt.gro Cooling/. 
+        cp Heated_nvt/system.top Cooling/. 
+        cp Heated_nvt/*.itp Cooling/. 
+        cd Cooling
+
+        gmx grompp -f $MDP/prep_cooling.mdp \
+            -c heated_nvt.gro \
+            -p system.top \
+            -o cooling.tpr >> $logFile 2>> $errFile 
+        check cooling.tpr
+
+        gmx mdrun -deffnm cooling >> $logFile 2>> $errFile 
+        check cooling.gro 
+
+        echo "Protein-H Protein-H" | gmx trjconv -s cooling.tpr \
+            -f cooling.gro \
+            -o unfolded.pdb \
+            -center \
+            -ur compact \
+            -pbc mol >> $logFile 2>> $errFile
+
+        clean
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
 production(){
     printf "\t\tProduction run............................" 
+    if [[ ! -s prep/Cooling/cooling.gro || ! -s prep/System_nvt/system_nvt.gro ]] ; then 
+        echo ; echo 
+        echo "ERROR: You must run prep first!" 
+        fi 
+    check prep/Cooling/cooling.gro prep/System_nvt/system_nvt.gro 
+
+    if [ ! -d $fold ] ; then mkdir $fold ; fi 
+    cd $fold 
+    MOLEC=${fold}_${SOL}
+
     if [ ! -f Production/${MOLEC}_${totSimTime}ns.gro ] ; then 
         printf "\n" 
         create_dir Production
         
-        cp Solvent_npt/neutral.top Production/.
-        cp Solvent_npt/solvent_npt.gro Production/.
-        cp Solvent_npt/*.itp Production/. 
+        cp ../prep/System_nvt/system.top Production/.
+        cp ../prep/System_nvt/*.itp Production/. 
+
+        if [ $fold = "folded" ] ; then 
+            cp ../prep/System_nvt/system_nvt.gro Production/.
+            startStructure=system_nvt.gro 
+            MOLEC=folded_$SOL
+        else 
+            cp ../prep/Cooling/cooling.gro Production/.
+            startStructure=cooling.gro 
+            MOLEC=unfolded_$SOL
+            fi 
+
         cd Production
 
         if [ ! -f $MOLEC.tpr ] ; then 
-            gmx grompp -f $MDP/production_solvent.mdp \
-                -p neutral.top \
-            -c solvent_npt.gro \
+            gmx grompp -f $MDP/production_sam.mdp \
+                -p system.top \
+            -c $startStructure \
             -o $MOLEC.tpr >> $logFile 2>> $errFile 
         fi 
         check $MOLEC.tpr 
@@ -692,6 +969,63 @@ production(){
         printf "Skipped\n"
         fi  
 } 
+
+#production(){
+#    printf "\t\tProduction run............................" 
+#    if [ ! -f Production/${MOLEC}_${totSimTime}ns.gro ] ; then 
+#        printf "\n" 
+#        create_dir Production
+#        
+#        cp Solvent_npt/neutral.top Production/.
+#        cp Solvent_npt/solvent_npt.gro Production/.
+#        cp Solvent_npt/*.itp Production/. 
+#        cd Production
+#
+#        if [ ! -f $MOLEC.tpr ] ; then 
+#            gmx grompp -f $MDP/production_solvent.mdp \
+#                -p neutral.top \
+#            -c solvent_npt.gro \
+#            -o $MOLEC.tpr >> $logFile 2>> $errFile 
+#        fi 
+#        check $MOLEC.tpr 
+#
+#        simTime=0
+#        while [ $simTime -lt $totSimTime ] ; do 
+#            ((simTime+=50))
+#            printf "\t\t\t%10i ns....................." $simTime
+#
+#            if [ ! -f ${MOLEC}_${simTime}ns.gro ] ; then 
+#                if [ ! -f $simTime.tpr ] ; then 
+#                    gmx convert-tpr -s $MOLEC.tpr \
+#                        -until $((simTime*1000)) \
+#                        -o $simTime.tpr >> $logFile 2>> $errFile 
+#                    fi 
+#                check $simTime.tpr 
+#
+#                if [ -f $MOLEC.cpt ] ; then 
+#                    gmx mdrun -deffnm $MOLEC \
+#                        -s $simTime.tpr \
+#                        -cpi $MOLEC.cpt >> $logFile 2>> $errFile  
+#                else 
+#                    gmx mdrun -deffnm $MOLEC \
+#                        -s $simTime.tpr >> $logFile 2>> $errFile
+#                    fi 
+#                check $MOLEC.gro 
+#                mv $MOLEC.gro ${MOLEC}_${simTime}ns.gro 
+#                check ${MOLEC}_${simTime}ns.gro 
+#                printf "Success\n" 
+#            else       
+#                printf "Skipped\n" 
+#                fi 
+#            done 
+#
+#        printf "\n" 
+#        clean
+#        cd ../
+#    else
+#        printf "Skipped\n"
+#        fi  
+#} 
 
 dssp(){
     printf "\t\tRunning dssp analysis....................." 
@@ -867,29 +1201,4 @@ rdf(){
         fi  
 }
 
-printf "\n\t\t*** Program Beginning $MOLEC $totSimTime (ns)***\n\n"
-cd $MOLEC
-build_SAM
-layer_relax
-protein_steep
-solvate
-solvent_steep
-solvent_nvt
-solvent_npt
-build_system
-system_steep
-system_nvt
-production
-dssp
-rgyr 
-minimage
-rdf 
-cd ../
-
-printf "\n\n\t\t*** Program Ending    ***\n\n"
-
-
-
-
-
-
+main
