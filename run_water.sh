@@ -1,19 +1,21 @@
 #!/bin/bash
+## Jeremy First
 
 TOP=${PWD}
 MDP=$TOP/mdp_files
 FF=$TOP/GMXFF
 forceField=oplsaa
 dim=7.455
-fileName=StartingStructures/folded.pdb
+fileName=$TOP/StartingStructures/folded.pdb
 totSimTime=50
 SOL=water
 MOLEC=folded_$SOL
 
 verbose=false
+analysis=false
 
 usage(){
-    echo "USAGE: $0 <Production/analysis: folded/unfolded> < simulation time (ns) [default=50ns]>"
+    echo "USAGE: $0 -f prep/folded/unfolded [ options ]" 
     exit 
 }
 
@@ -25,9 +27,10 @@ HELP(){
     echo "  -f   folded, unfolded, or prep. Mandatory" 
     echo "  -c   Starting structure  (folded) PDB file: Default = StartingStructures/folded.pdb"
     echo "  -t   Maximum simulation time (ns) : Default = 50 "
+    echo "  -a   Perform analyis on trajectory : Default = no"
     echo "  -d   Box dimension (nm) : Default = 7.455 " 
-    echo "  -m   Location of the mdp_files : Default = $PWD/mdp_files"
-    echo "  -p   Location of force field files. : Default = $PWD/GMXFF"
+    echo "  -m   Location of the mdp_files : Default = mdp_files"
+    echo "  -p   Location of force field files. : Default = GMXFF"
     echo "  -n   Name of force field : Default = oplsaa"
     echo "  -v   Print all options and quit." 
     echo "  -h   print this usage and exit "
@@ -35,16 +38,19 @@ HELP(){
     exit
 }
 
-while getopts :f:c:t:d:m:p:n:vh opt; do 
+while getopts :f:c:t:d:am:p:n:vh opt; do 
    case $opt in 
       f) 
         fold=$OPTARG
         ;; 
       c)
-        fileName=$OPTARG
+        fileName=${TOP}/$OPTARG
         ;; 
       t)
         totSimTime=$OPTARG
+        ;; 
+      a) 
+        analysis=true
         ;; 
       d) 
         dim=$OPTARG
@@ -76,17 +82,19 @@ while getopts :f:c:t:d:m:p:n:vh opt; do
    done 
 
 main(){
-    printf "\n\t\t*** Program Beginning $SOL_$fold $totSimTime (ns)***\n\n" 
     logFile=$TOP/$SOL/$fold/$fold.log
     errFile=$TOP/$SOL/$fold/$fold.err
     checkInput
-    cd $SOL
+    printf "\n\t\t*** Program Beginning $SOL_$fold $totSimTime (ns)***\n\n" 
     if [ ! -d $SOL ] ; then mkdir $SOL ; fi 
+    cd $SOL
     if [ $fold == "prep" ] ; then 
         prep
     else  
         production 
-        analysis
+        if $analysis ; then 
+            analysis
+            fi 
         cd ../
         fi 
     cd ../
@@ -121,6 +129,7 @@ checkInput(){
         echo "Input file name: $fileName"
         echo "Max simultaiton time: $totSimTime"
         echo "Box dimension : $dim " 
+        echo "Perform analysis : $analysis " 
         echo "Verbose = $verbose"
         echo "mdp files = $MDP " 
         echo "force field directory = $FF" 
@@ -167,8 +176,6 @@ checkInput(){
     check $MDP $fileName $FF $FF/$forceField.ff 
 } 
 
-#if [ ! -f $MOLEC/$fileName ] ; then cp $fileName $MOLEC/. ; fi 
-
 check(){
    for arg in $@ ; do 
         if [ ! -s $arg ] ; then 
@@ -177,7 +184,6 @@ check(){
             fi 
         done 
 }
-
 
 clean(){
     if [ -d $forceField.ff ] ; then rm -r $forceField.ff *.dat ; fi 
@@ -201,13 +207,12 @@ create_dir(){
         fi 
 }
 
-
 protein_steep(){
     printf "\t\tProtein steep............................." 
     if [ ! -f Protein_steep/protein_steep.gro ] ; then 
         create_dir Protein_steep
         
-        cp $TOP/$fileName Protein_steep/.
+        cp $fileName Protein_steep/.
         cd Protein_steep
 
         ## 3, 3 -- None, None for termini options
@@ -301,7 +306,8 @@ solvent_steep(){
         
         cp Solvate/neutral.gro Solvent_steep/. 
         cp Solvate/neutral.top Solvent_steep/. 
-        cp Solvate/*.itp Solvent_steep/. 
+        cp Solvate/neutral_*.itp Solvent_steep/. 
+        cp Solvate/posre_*.itp Solvent_steep/. 
         cd Solvent_steep
 
         gmx grompp -f $MDP/solvent_steep.mdp \
