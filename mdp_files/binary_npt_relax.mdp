@@ -1,4 +1,3 @@
-
 ; Run control
 integrator            = md 
 tinit                 = 0
