@@ -9,6 +9,7 @@ dim=7.455
 fileName=$TOP/StartingStructures/folded.pdb
 waterFileName=$TOP/StartingStructures/tip3p.pdb 
 tbaFileName=$TOP/StartingStructures/tba.pdb 
+molRatio=2
 totSimTime=50
 SOL=tert
 MOLEC=folded_$SOL
@@ -23,7 +24,7 @@ usage(){
 
 HELP(){
     echo 
-    echo "This program runs molecular dynamic simulations of a peptide in water "
+    echo "This program runs molecular dynamic simulations of a peptide in a TBA:Water mixture"
     echo 
     echo "Usage: $0 [options] "
     echo "  -f   folded, unfolded, or prep. Mandatory" 
@@ -32,9 +33,10 @@ HELP(){
     echo "  -a   Perform analyis on trajectory : Default = no"
     echo "  -w   Water structure PDB file: Default = StartingStrcutures/tip3p.pdb" 
     echo "  -b   TBA structure PDB file: Default = StartingStrcutures/tba.pdb" 
+    echo "  -R   Volume ratio of TBA:Water in binary solvent: Default = 2"
     echo "  -d   Box dimension (nm) : Default = 7.455 " 
-    echo "  -m   Location of the mdp_files : Default = $PWD/mdp_files"
-    echo "  -p   Location of force field files. : Default = $PWD/GMXFF"
+    echo "  -m   Location of the mdp_files : Default = mdp_files"
+    echo "  -p   Location of force field files. : Default = GMXFF"
     echo "  -n   Name of force field : Default = oplsaa"
     echo "  -v   Print all options and quit." 
     echo "  -h   print this usage and exit "
@@ -42,7 +44,7 @@ HELP(){
     exit
 }
 
-while getopts :f:c:t:a:w:b:d:am:p:n:vh opt; do 
+while getopts :f:c:t:a:w:b:R:d:am:p:n:vh opt; do 
    case $opt in 
       f) 
         fold=$OPTARG
@@ -61,6 +63,9 @@ while getopts :f:c:t:a:w:b:d:am:p:n:vh opt; do
         ;; 
       b) 
         tbaFileName=${TOP}/$OPTARG
+        ;; 
+      R) 
+        molRatio=$OPTARG
         ;; 
       d) 
         dim=$OPTARG
@@ -144,6 +149,7 @@ checkInput(){
         echo "Water structure name: $waterFileName" 
         echo "TBA structure name: $tbaFileName" 
         echo "Max simultaiton time: $totSimTime"
+        echo "Volume ratio of TBA:Water: $molRatio"
         echo "Box dimension : $dim " 
         echo "Perform analysis : $analysis " 
         echo "Verbose = $verbose"
@@ -178,6 +184,10 @@ checkInput(){
         fi 
     if [[ $tbaFileName != *.pdb ]] ; then 
         echo "ERROR: Input file must be PDB file (*.pdb)" 
+        exit 
+        fi 
+    if [[ $molRatio < 0 ]] ; then 
+        echo "ERROR: Box dimension must be larger than 0"   
         exit 
         fi 
     if [ ! -z $fold ] ; then 
@@ -288,8 +298,8 @@ prepare_box(){
     if [ ! -f Prepare_box/mixture.top ] ; then 
         create_dir Prepare_box
         
-        cp $waterFileName Prepare_box/. 
-        cp $tbaFileName Prepare_box/. 
+        cp $waterFileName Prepare_box/tip3p.pdb 
+        cp $tbaFileName Prepare_box/tba.pdb 
         cp Protein_steep/$MOLEC.top Prepare_box/. 
         cp Protein_steep/protein_steep.gro Prepare_box/. 
         cd Prepare_box/. 
@@ -300,7 +310,6 @@ prepare_box(){
         #numWat=`echo "print int(round(($dim * 10 **-7) ** 3 * 0.800 / 166.255 * 6.022 * 10 ** 23))" | python`
         #numTBA=`echo "$numWat * 2 " | bc -l`
         
-        molRatio=2
         echo "#!/usr/bin/env python
 Na = 6.022 * 10 ** 23 #Avogadro's number 
 pTBA = 0.77014 ## g/cm**3 
