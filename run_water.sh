@@ -1,57 +1,173 @@
 #!/bin/bash
 
+TOP=${PWD}
+MDP=$TOP/mdp_files
+FF=$TOP/GMXFF
+forceField=oplsaa
 dim=7.455
 fileName=StartingStructures/folded.pdb
+totSimTime=50
+SOL=water
+MOLEC=folded_$SOL
+
+verbose=false
 
 usage(){
     echo "USAGE: $0 <Production/analysis: folded/unfolded> < simulation time (ns) [default=50ns]>"
     exit 
 }
 
-if [ ! -f $fileName ] ; then 
-    echo "ERROR: $fileName not found " 
-    exit 
-    fi 
-if [[ $fileName == *.pdb ]] ; then 
-    SOL='water'
-    MOLEC=folded_$SOL
-else 
-    echo "ERROR: Input file must be PDB file (*.pdb)" 
-    exit 
-    fi 
+HELP(){
+    echo 
+    echo "This program runs molecular dynamic simulations of a peptide in water "
+    echo 
+    echo "Usage: $0 [options] "
+    echo "  -f   folded, unfolded, or prep. Mandatory" 
+    echo "  -c   Starting structure  (folded) PDB file: Default = StartingStructures/folded.pdb"
+    echo "  -t   Maximum simulation time (ns) : Default = 50 "
+    echo "  -d   Box dimension (nm) : Default = 7.455 " 
+    echo "  -m   Location of the mdp_files : Default = $PWD/mdp_files"
+    echo "  -p   Location of force field files. : Default = $PWD/GMXFF"
+    echo "  -n   Name of force field : Default = oplsaa"
+    echo "  -v   Print all options and quit." 
+    echo "  -h   print this usage and exit "
+    echo "" 
+    exit
+}
 
-if [ ! -z $1 ] ; then 
-    fold=$1
-    if [[ $fold != 'folded' && $fold != 'unfolded' ]] ; then 
-        echo "ERROR: $fold not recognized"
+while getopts :f:c:t:d:m:p:n:vh opt; do 
+   case $opt in 
+      f) 
+        fold=$OPTARG
+        ;; 
+      c)
+        fileName=$OPTARG
+        ;; 
+      t)
+        totSimTime=$OPTARG
+        ;; 
+      d) 
+        dim=$OPTARG
+        ;; 
+      m) 
+        MDP=${TOP}/$OPTARG
+        ;; 
+      p) 
+        FF=${TOP}/$OPTARG
+        ;; 
+      n) 
+        forceField=$OPTARG
+        ;; 
+      v) 
+        verbose=true
+        ;; 
+      :) 
+        echo " option -$OPTARG requires an argument! "
+        usage
+        ;; 
+      h)
+        HELP
+        ;; 
+      \?) 
+        echo "Invalid option -$OPTARG "
+        HELP 
+        ;; 
+   esac
+   done 
+
+main(){
+    printf "\n\t\t*** Program Beginning $SOL_$fold $totSimTime (ns)***\n\n" 
+    logFile=$TOP/$SOL/$fold/$fold.log
+    errFile=$TOP/$SOL/$fold/$fold.err
+    checkInput
+    cd $SOL
+    if [ ! -d $SOL ] ; then mkdir $SOL ; fi 
+    if [ $fold == "prep" ] ; then 
+        prep
+    else  
+        production 
+        analysis
+        cd ../
+        fi 
+    cd ../
+    printf "\n\n\t\t*** Program Ending    ***\n\n" 
+}
+
+prep(){
+    if [ ! -d prep ] ; then mkdir prep ; fi 
+    cd prep
+    protein_steep
+    solvate
+    solvent_steep
+    solvent_nvt
+    solvent_npt
+    heating
+    heated
+    cooling
+    cd ../
+}
+
+analysis(){
+    if [ ! -d $fold ] ; then mkdir $fold ; fi 
+    dssp
+    rgyr
+    minimage
+    rdf
+}
+
+checkInput(){
+    if $verbose ; then 
+        echo "Folded state : $fold" 
+        echo "Input file name: $fileName"
+        echo "Max simultaiton time: $totSimTime"
+        echo "Box dimension : $dim " 
+        echo "Verbose = $verbose"
+        echo "mdp files = $MDP " 
+        echo "force field directory = $FF" 
+        echo "force field name = $forceField " 
+        echo "Log file = $logFile " 
+        echo "Error file = $errFile " 
+        echo ""
+        exit 
+        fi 
+    
+    if [ ! -f $fileName ] ; then 
+        echo "ERROR: $fileName not found " 
+        exit 
+        fi 
+    if [[ $fileName != *.pdb ]] ; then 
+        echo "ERROR: Input file must be PDB file (*.pdb)" 
+        exit 
+        fi 
+    if [ ! -z $fold ] ; then 
+        if [[ $fold != 'folded' && $fold != 'unfolded' && $fold != 'prep' ]] ; then 
+            echo "ERROR: $fold not recognized"
+            HELP
+            fi 
+    else 
+        echo "ERROR: Must specify folded/unfoled" 
         usage
         fi 
-else 
-    echo "ERROR: Must specify folded/unfoled" 
-    usage
-    fi 
+    if [[ $dim < 0 ]] ; then 
+        echo "ERROR: Box dimension must be larger than 0" 
+        exit 
+        fi 
+    if [ $totSimTime -le 0 ] ; then 
+        echo "ERROR: Total simulation time must be larger than 0" 
+        exit 
+        fi 
+    if [ ! -d $FF/$forceField.ff ] ; then 
+        echo ; echo "ERROR: FF not found" 
+        exit
+        fi  
+    if [ ! -d $MDP ] ; then 
+        echo ; echo "ERROR: mdp files directory not found" 
+        exit 
+        fi 
+    check $MDP $fileName $FF $FF/$forceField.ff 
+} 
 
-if [ ! -z $2 ] ; then 
-    totSimTime=$2
-else 
-    totSimTime=50
-    fi
-
-if [ ! -d $SOL ] ; then mkdir $SOL ; fi 
-if [ ! -d $SOL/prep ] ; then mkdir $SOL/prep ; fi 
-if [ ! -d $SOL/$fold ] ; then mkdir $SOL/$fold ; fi 
 #if [ ! -f $MOLEC/$fileName ] ; then cp $fileName $MOLEC/. ; fi 
-
-TOP=${PWD}
-MDP=$TOP/mdp_files
-logFile=$TOP/$SOL/prep/prep.log
-errFile=$TOP/$SOL/prep/prep.err
-FF=$TOP/GMXFF
-forceField=oplsaa
-if [ ! -d $FF/$forceField.ff ] ; then 
-    echo ; echo "ERROR: FF not found" 
-    exit
-    fi  
 
 check(){
    for arg in $@ ; do 
@@ -61,6 +177,7 @@ check(){
             fi 
         done 
 }
+
 
 clean(){
     if [ -d $forceField.ff ] ; then rm -r $forceField.ff *.dat ; fi 
@@ -84,19 +201,6 @@ create_dir(){
         fi 
 }
 
-prep(){
-    if [ ! -d prep ] ; then mkdir prep ; fi 
-    cd prep
-    protein_steep
-    solvate
-    solvent_steep
-    solvent_nvt
-    solvent_npt
-    heating
-    heated
-    cooling
-    cd ../
-}
 
 protein_steep(){
     printf "\t\tProtein steep............................." 
@@ -361,6 +465,16 @@ cooling(){
 
 production(){
     printf "\t\tProduction run............................" 
+    if [[ ! -s prep/Cooling/cooling.gro || ! -s prep/Solvent_npt/solvent_npt.gro ]] ; then 
+        echo ; echo 
+        echo "ERROR: You must run prep first!" 
+        fi 
+    check prep/Cooling/cooling.gro prep/Solvent_npt/solvent_npt.gro 
+
+    if [ ! -d $fold ] ; then mkdir $fold ; fi 
+    cd $fold 
+    MOLEC=${fold}_${SOL}
+
     if [ ! -f Production/${MOLEC}_${totSimTime}ns.gro ] ; then 
         printf "\n" 
         create_dir Production
@@ -587,15 +701,4 @@ rdf(){
         fi  
 }
 
-printf "\n\t\t*** Program Beginning $SOL_$fold $totSimTime (ns)***\n\n" 
-cd $SOL
-prep
-cd $fold 
-production 
-dssp
-rgyr
-minimage
-rdf
-cd ../../
-
-printf "\n\n\t\t*** Program Ending    ***\n\n" 
+main
