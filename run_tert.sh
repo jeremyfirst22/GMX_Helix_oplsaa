@@ -1,54 +1,212 @@
 #!/bin/bash
-
-dim=7.455
-
-usage(){
-    echo "USAGE: $0 <PDB file {molec.pdb} > < simulation time (ns) [default=50ns]>"
-    exit 
-}
-
-if [ -z $1 ] ; then 
-    usage 
-    fi 
-
-fileName=$1 
-if [ ! -f $fileName ] ; then 
-    echo "ERROR: $fileName not found " 
-    exit 
-    fi 
-if [[ $fileName == *.pdb ]] ; then 
-    MOLEC=$(basename $fileName)
-    MOLEC=${MOLEC%.*}_tert
-else 
-    echo "ERROR: Input file must be PDB file (*.pdb)" 
-    exit 
-    fi 
-if [ ! -z $2 ] ; then 
-    totSimTime=$2
-else 
-    totSimTime=50
-    fi
-
-if [ ! -d $MOLEC ] ; then mkdir $MOLEC ; fi 
-if [ ! -f $MOLEC/$fileName ] ; then cp $fileName $MOLEC/$MOLEC.pdb ; fi 
-
-if [[ ! -f StartingStructures/tip3p.pdb || ! -f StartingStructures/tba.pdb ]] ; then 
-    echo "ERROR: tip3p.pdb and tba.pdb required in StartingStrcutures for this solvent" 
-    exit 
-    fi 
-cp StartingStructures/tip3p.pdb $MOLEC/.
-cp StartingStructures/tba.pdb $MOLEC/.
+## Jeremy First
 
 TOP=${PWD}
 MDP=$TOP/mdp_files
-logFile=$TOP/$MOLEC/$MOLEC.log 
-errFile=$TOP/$MOLEC/$MOLEC.err 
 FF=$TOP/GMXFF
 forceField=oplsaa
-if [ ! -d $FF/$forceField.ff ] ; then 
-    echo ; echo "ERROR: FF not found" 
+dim=7.455
+fileName=$TOP/StartingStructures/folded.pdb
+waterFileName=$TOP/StartingStructures/tip3p.pdb 
+tbaFileName=$TOP/StartingStructures/tba.pdb 
+totSimTime=50
+SOL=tert
+MOLEC=folded_$SOL
+
+verbose=false
+analysis=false
+
+usage(){
+    echo "USAGE: $0 -f prep/folded/unfolded [ options ]" 
+    exit 
+}
+
+HELP(){
+    echo 
+    echo "This program runs molecular dynamic simulations of a peptide in water "
+    echo 
+    echo "Usage: $0 [options] "
+    echo "  -f   folded, unfolded, or prep. Mandatory" 
+    echo "  -c   Starting structure  (folded) PDB file: Default = StartingStructures/folded.pdb"
+    echo "  -t   Maximum simulation time (ns) : Default = 50 "
+    echo "  -a   Perform analyis on trajectory : Default = no"
+    echo "  -w   Water structure PDB file: Default = StartingStrcutures/tip3p.pdb" 
+    echo "  -b   TBA structure PDB file: Default = StartingStrcutures/tba.pdb" 
+    echo "  -d   Box dimension (nm) : Default = 7.455 " 
+    echo "  -m   Location of the mdp_files : Default = $PWD/mdp_files"
+    echo "  -p   Location of force field files. : Default = $PWD/GMXFF"
+    echo "  -n   Name of force field : Default = oplsaa"
+    echo "  -v   Print all options and quit." 
+    echo "  -h   print this usage and exit "
+    echo "" 
     exit
-    fi  
+}
+
+while getopts :f:c:t:a:w:b:d:am:p:n:vh opt; do 
+   case $opt in 
+      f) 
+        fold=$OPTARG
+        ;; 
+      c)
+        fileName=${TOP}/$OPTARG
+        ;; 
+      t)
+        totSimTime=$OPTARG
+        ;; 
+      a) 
+        analysis=true
+        ;; 
+      w) 
+        waterFileName=${TOP}/$OPTARG
+        ;; 
+      b) 
+        tbaFileName=${TOP}/$OPTARG
+        ;; 
+      d) 
+        dim=$OPTARG
+        ;; 
+      m) 
+        MDP=${TOP}/$OPTARG
+        ;; 
+      p) 
+        FF=${TOP}/$OPTARG
+        ;; 
+      n) 
+        forceField=$OPTARG
+        ;; 
+      v) 
+        verbose=true
+        ;; 
+      :) 
+        echo " option -$OPTARG requires an argument! "
+        usage
+        ;; 
+      h)
+        HELP
+        ;; 
+      \?) 
+        echo "Invalid option -$OPTARG "
+        HELP 
+        ;; 
+   esac
+   done 
+
+main(){
+    logFile=$TOP/$SOL/$fold/$fold.log
+    errFile=$TOP/$SOL/$fold/$fold.err
+    checkInput
+    printf "\n\t\t*** Program Beginning $SOL_$fold $totSimTime (ns)***\n\n" 
+    if [ ! -d $SOL ] ; then mkdir $SOL ; fi 
+    cd $SOL
+    if [ $fold == "prep" ] ; then 
+        prep
+    else  
+        production 
+        if $analysis ; then 
+            analysis
+            fi 
+        cd ../
+        fi 
+    cd ../
+    printf "\n\n\t\t*** Program Ending    ***\n\n" 
+}
+
+prep(){
+    if [ ! -d prep ] ; then mkdir prep ; fi 
+    cd prep
+    protein_steep
+    prepare_box
+    binary_steep
+    binary_nvt
+    binary_npt
+    solvate
+    solvent_steep
+    solvent_nvt
+    solvent_npt
+    heating
+    heated
+    cooling
+    cd ../
+}
+
+analysis(){
+    if [ ! -d $fold ] ; then mkdir $fold ; fi 
+    dssp
+    rgyr
+    minimage
+    rdf
+}
+
+checkInput(){
+    if $verbose ; then 
+        echo "Folded state : $fold" 
+        echo "Input file name: $fileName"
+        echo "Water structure name: $waterFileName" 
+        echo "TBA structure name: $tbaFileName" 
+        echo "Max simultaiton time: $totSimTime"
+        echo "Box dimension : $dim " 
+        echo "Perform analysis : $analysis " 
+        echo "Verbose = $verbose"
+        echo "mdp files = $MDP " 
+        echo "force field directory = $FF" 
+        echo "force field name = $forceField " 
+        echo "Log file = $logFile " 
+        echo "Error file = $errFile " 
+        echo ""
+        exit 
+        fi 
+    
+    if [ ! -f $fileName ] ; then 
+        echo "ERROR: $fileName not found " 
+        exit 
+        fi 
+    if [[ $fileName != *.pdb ]] ; then 
+        echo "ERROR: Input file must be PDB file (*.pdb)" 
+        exit 
+        fi 
+    if [ ! -f $waterFileName ] ; then 
+        echo "ERROR: $waterFileName not found " 
+        exit 
+        fi 
+    if [[ $waterFileName != *.pdb ]] ; then 
+        echo "ERROR: Input file must be PDB file (*.pdb)" 
+        exit 
+        fi 
+    if [ ! -f $tbaFileName ] ; then 
+        echo "ERROR: $tbaFileName not found " 
+        exit 
+        fi 
+    if [[ $tbaFileName != *.pdb ]] ; then 
+        echo "ERROR: Input file must be PDB file (*.pdb)" 
+        exit 
+        fi 
+    if [ ! -z $fold ] ; then 
+        if [[ $fold != 'folded' && $fold != 'unfolded' && $fold != 'prep' ]] ; then 
+            echo "ERROR: $fold not recognized"
+            HELP
+            fi 
+    else 
+        echo "ERROR: Must specify folded/unfoled" 
+        usage
+        fi 
+    if [[ $dim < 0 ]] ; then 
+        echo "ERROR: Box dimension must be larger than 0" 
+        exit 
+        fi 
+    if [ $totSimTime -le 0 ] ; then 
+        echo "ERROR: Total simulation time must be larger than 0" 
+        exit 
+        fi 
+    if [ ! -d $FF/$forceField.ff ] ; then 
+        echo ; echo "ERROR: FF not found" 
+        exit
+        fi  
+    if [ ! -d $MDP ] ; then 
+        echo ; echo "ERROR: mdp files directory not found" 
+        exit 
+        fi 
+    check $MDP $fileName $FF $FF/$forceField.ff 
+} 
 
 check(){
    for arg in $@ ; do 
@@ -86,11 +244,11 @@ protein_steep(){
     if [ ! -f Protein_steep/protein_steep.gro ] ; then 
         create_dir Protein_steep
         
-        cp $MOLEC.pdb Protein_steep/.
+        cp $fileName Protein_steep/.
         cd Protein_steep
 
         ## 3, 3 -- None, None for termini options
-        echo '3 3' | gmx pdb2gmx -f $MOLEC.pdb \
+        echo '3 3' | gmx pdb2gmx -f $(basename $fileName) \
             -p $MOLEC.top \
             -ff $forceField \
             -ter \
@@ -130,8 +288,8 @@ prepare_box(){
     if [ ! -f Prepare_box/mixture.top ] ; then 
         create_dir Prepare_box
         
-        cp tip3p.pdb Prepare_box/. 
-        cp tba.pdb Prepare_box/. 
+        cp $waterFileName Prepare_box/. 
+        cp $tbaFileName Prepare_box/. 
         cp Protein_steep/$MOLEC.top Prepare_box/. 
         cp Protein_steep/protein_steep.gro Prepare_box/. 
         cd Prepare_box/. 
@@ -425,21 +583,129 @@ solvent_npt(){
         fi  
 }
 
+heating(){
+    printf "\t\tHeating solution to 900K.................." 
+    if [ ! -f Heating/heating.gro ] ; then 
+        create_dir Heating
+        
+        cp Solvent_npt/solvent_npt.gro Heating/. 
+        cp Solvent_npt/neutral.top Heating/. 
+        cp Solvent_npt/*.itp Heating/. 
+        cd Heating
+
+        gmx grompp -f $MDP/prep_heating.mdp \
+            -c solvent_npt.gro \
+            -p neutral.top \
+            -o heating.tpr >> $logFile 2>> $errFile  
+        check heating.tpr 
+
+        gmx mdrun -deffnm heating >> $logFile 2>> $errFile 
+        check heating.gro 
+
+        clean
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
+heated(){
+    printf "\t\tNVT simulation at 900K...................." 
+    if [ ! -f Heated_nvt/heated_nvt.gro ] ; then 
+        create_dir Heated_nvt
+        
+        cp Heating/heating.gro Heated_nvt/. 
+        cp Heating/neutral.top Heated_nvt/. 
+        cp Heating/*.itp Heated_nvt/. 
+        cd Heated_nvt
+
+        gmx grompp -f $MDP/prep_heated.mdp \
+            -c heating.gro \
+            -p neutral.top \
+            -o heated_nvt.tpr >> $logFile 2>> $errFile 
+        check heated_nvt.tpr
+
+        gmx mdrun -deffnm heated_nvt >> $logFile 2>> $errFile 
+        check heated_nvt.gro 
+
+        clean
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
+cooling(){
+    printf "\t\tCooling solution to 300K.................." 
+    if [ ! -f Cooling/cooling.gro ] ; then 
+        create_dir Cooling
+        
+        cp Heated_nvt/heated_nvt.gro Cooling/. 
+        cp Heated_nvt/neutral.top Cooling/. 
+        cp Heated_nvt/*.itp Cooling/. 
+        cd Cooling
+
+        gmx grompp -f $MDP/prep_cooling.mdp \
+            -c heated_nvt.gro \
+            -p neutral.top \
+            -o cooling.tpr >> $logFile 2>> $errFile 
+        check cooling.tpr
+
+        gmx mdrun -deffnm cooling >> $logFile 2>> $errFile 
+        check cooling.gro 
+
+        echo "Protein-H Protein-H" | gmx trjconv -s cooling.tpr \
+            -f cooling.gro \
+            -o unfolded.pdb \
+            -center \
+            -ur compact \
+            -pbc mol >> $logFile 2>> $errFile
+
+        clean
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
 production(){
     printf "\t\tProduction run............................" 
+    if [[ ! -s prep/Cooling/cooling.gro || ! -s prep/Solvent_npt/solvent_npt.gro ]] ; then 
+        echo ; echo 
+        echo "ERROR: You must run prep first!" 
+        fi 
+    check prep/Cooling/cooling.gro prep/Solvent_npt/solvent_npt.gro 
+
+    if [ ! -d $fold ] ; then mkdir $fold ; fi 
+    cd $fold 
+    MOLEC=${fold}_${SOL}
+
     if [ ! -f Production/${MOLEC}_${totSimTime}ns.gro ] ; then 
         printf "\n" 
         create_dir Production
         
-        cp Solvent_npt/neutral.top Production/.
-        cp Solvent_npt/solvent_npt.gro Production/.
-        cp Solvent_npt/*.itp Production/. 
+        cp ../prep/Solvent_npt/neutral.top Production/.
+        cp ../prep/Solvent_npt/*.itp Production/. 
+
+        if [ $fold = "folded" ] ; then 
+            cp ../prep/Solvent_npt/solvent_npt.gro Production/.
+            startStructure=solvent_npt.gro
+            MOLEC=folded_$SOL
+        else 
+            cp ../prep/Cooling/cooling.gro Production/.
+            startStructure=cooling.gro 
+            MOLEC=unfolded_$SOL
+            fi 
+
         cd Production
 
         if [ ! -f $MOLEC.tpr ] ; then 
             gmx grompp -f $MDP/production_solvent.mdp \
                 -p neutral.top \
-            -c solvent_npt.gro \
+            -c $startStructure \
             -o $MOLEC.tpr >> $logFile 2>> $errFile 
         fi 
         check $MOLEC.tpr 
@@ -666,24 +932,6 @@ rdf(){
     else
         printf "Skipped\n"
         fi  
-} 
+}
 
-printf "\n\t\t*** Program Beginning $MOLEC $totSimTime (ns)***\n\n" 
-cd $MOLEC
-protein_steep
-prepare_box
-binary_steep
-binary_nvt
-binary_npt
-solvate
-solvent_steep
-solvent_nvt
-solvent_npt
-production 
-dssp 
-rgyr 
-minimage
-rdf 
-cd ../
-
-printf "\n\n\t\t*** Program Ending    ***\n\n" 
+main
