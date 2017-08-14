@@ -349,7 +349,7 @@ cooling(){
             -o unfolded.pdb \
             -center \
             -ur compact \
-            -pbc mol 
+            -pbc mol >> $logFile 2>> $errFile
 
         clean
         printf "Success\n" 
@@ -365,15 +365,25 @@ production(){
         printf "\n" 
         create_dir Production
         
-        cp Solvent_npt/neutral.top Production/.
-        cp Solvent_npt/solvent_npt.gro Production/.
-        cp Solvent_npt/*.itp Production/. 
+        cp ../prep/Solvent_npt/neutral.top Production/.
+        cp ../prep/Solvent_npt/*.itp Production/. 
+
+        if [ $fold = "folded" ] ; then 
+            cp ../prep/Solvent_npt/solvent_npt.gro Production/.
+            startStructure=solvent_npt.gro
+            MOLEC=folded_$SOL
+        else 
+            cp ../prep/Cooling/cooling.gro Production/.
+            startStructure=cooling.gro 
+            MOLEC=unfolded_$SOL
+            fi 
+
         cd Production
 
         if [ ! -f $MOLEC.tpr ] ; then 
             gmx grompp -f $MDP/production_solvent.mdp \
                 -p neutral.top \
-            -c solvent_npt.gro \
+            -c $startStructure \
             -o $MOLEC.tpr >> $logFile 2>> $errFile 
         fi 
         check $MOLEC.tpr 
