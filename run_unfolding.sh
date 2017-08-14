@@ -258,10 +258,10 @@ heating(){
         cp Solvent_npt/*.itp Heating/. 
         cd Heating
 
-        gmx grompp -f $MDP/heating.mdp \
+        gmx grompp -f $MDP/prep_heating.mdp \
             -c solvent_npt.gro \
             -p neutral.top \
-            -o heating.tpr 
+            -o heating.tpr >> $logFile 2>> $errFile  
         check heating.tpr 
 
         gmx mdrun -deffnm heating >> $logFile 2>> $errFile 
@@ -285,7 +285,7 @@ heated_nvt(){
         cp Heating/*.itp Heated_nvt/. 
         cd Heated_nvt
 
-        gmx grompp -f $MDP/hot_nvt.mdp \
+        gmx grompp -f $MDP/prep_heated.mdp \
             -c heating.gro \
             -p neutral.top \
             -o heated_nvt.tpr >> $logFile 2>> $errFile 
@@ -312,13 +312,13 @@ cooling(){
         cp Heated_nvt/*.itp Cooling/. 
         cd Cooling
 
-        gmx grompp -f $MDP/cooling.mdp \
+        gmx grompp -f $MDP/prep_cooling.mdp \
             -c heated_nvt.gro \
             -p neutral.top \
             -o cooling.tpr >> $logFile 2>> $errFile 
         check cooling.tpr
 
-        #gmx mdrun -deffnm cooling >> $logFile 2>> $errFile 
+        gmx mdrun -deffnm cooling >> $logFile 2>> $errFile 
         check cooling.gro 
 
         echo "Protein-H Protein-H" | gmx trjconv -s cooling.tpr \
