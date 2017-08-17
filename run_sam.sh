@@ -755,9 +755,7 @@ system_steep(){
         
         cp Build_system/system.top System_steep/.
         cp Build_system/system.gro System_steep/.
-        cp Build_system/system_*.itp System_steep/. 
-        cp Build_system/posre_*.itp System_steep/. 
-        #cp Relax_SAM/*.itp System_steep/. 
+        cp Build_system/*.itp System_steep/. 
         cd System_steep
 
         gmx grompp -f $MDP/system_steep.mdp \
