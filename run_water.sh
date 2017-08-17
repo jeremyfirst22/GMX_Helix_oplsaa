@@ -117,10 +117,12 @@ prep(){
 
 analysis(){
     if [ ! -d $fold ] ; then mkdir $fold ; fi 
+    cd $fold 
     dssp
     rgyr
     minimage
     rdf
+    cd ../
 }
 
 checkInput(){
@@ -478,10 +480,10 @@ production(){
     check prep/Cooling/cooling.gro prep/Solvent_npt/solvent_npt.gro 
 
     if [ ! -d $fold ] ; then mkdir $fold ; fi 
-    cd $fold 
-    MOLEC=${fold}_${SOL}
 
     if [ ! -f Production/${MOLEC}_${totSimTime}ns.gro ] ; then 
+        cd $fold 
+        MOLEC=${fold}_${SOL}
         printf "\n" 
         create_dir Production
         
@@ -540,7 +542,7 @@ production(){
 
         printf "\n" 
         clean
-        cd ../
+        cd ../../
     else
         printf "Skipped\n"
         fi  
