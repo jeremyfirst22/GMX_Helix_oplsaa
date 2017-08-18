@@ -679,6 +679,7 @@ build_system(){
         includeLine=`cat -n neutral.top | grep '; Include Position restraint file' | awk '{print $1}'`
         head -n $includeLine neutral.top > system.top  
         echo '#include "distance_restraints.itp"' >> system.top 
+        echo >> system.top 
         echo '#ifdef POSSULRES' >> system.top 
         echo '#include "posre_SUL.itp"' >> system.top 
         echo '#endif' >> system.top 
@@ -690,7 +691,7 @@ build_system(){
         echo "[ position_restraints ]" > posre_SUL.itp 
         echo ";; Pin sulfur atoms to spacing found on SAM" >> posre_SUL.itp 
         for atom in `grep LIG system.gro | grep S1 | awk '{print $3}'` ; do 
-            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 $sulRest $sulRest $sulRest >> posre_SUL.itp 
+            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 0 0 $sulRest >> posre_SUL.itp 
         done 
 
         ## We need to rebuild posre.itp. pdb2gmx assigns all heavy atoms to restraints. 
@@ -728,7 +729,7 @@ add_restraints(){
     
     echo '0 1' | gmx mindist -f system.gro \
         -n index.ndx \
-        -o gly6_dist.out >> $logFile 2>> errFile 
+        -o gly6_dist.out >> $logFile 2>> $errFile 
     check gly6_dist.out 
     
     C10=`cat gly6_dist.out | awk '{print $2}'`
@@ -813,7 +814,24 @@ heating(){
         cp System_nvt/*.itp Heating/. 
         cd Heating
 
-        gmx grompp -f $MDP/prep_heating.mdp \
+        includeLine=`cat -n system.top | grep '; Include Position restraint file' | awk '{print $1}' | tail -n1 `
+        head -n $includeLine system.top > temp.top 
+        echo '
+#ifdef POSLIGRES 
+#include "posre_LIG.itp" 
+#endif
+        ' >> temp.top 
+        ((includeLine++)) 
+        tail -n +$includeLine system.top >> temp.top
+        mv temp.top system.top 
+
+        echo "[ position_restraints ]" > posre_LIG.itp 
+        echo ";; Pin sulfur atoms to spacing found on SAM" >> posre_LIG.itp 
+        for atom in `grep LIG system_nvt.gro | awk '{print $2"\t"$3}' | grep "^[SC]" | awk '{print $2}'` ; do 
+            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 1000  10000 1000 >> posre_LIG.itp 
+        done 
+
+        gmx grompp -f $MDP/prep_heating_sam.mdp \
             -c system_nvt.gro \
             -p system.top \
             -o heating.tpr >> $logFile 2>> $errFile  
@@ -840,7 +858,7 @@ heated(){
         cp Heating/*.itp Heated_nvt/. 
         cd Heated_nvt
 
-        gmx grompp -f $MDP/prep_heated.mdp \
+        gmx grompp -f $MDP/prep_heated_sam.mdp \
             -c heating.gro \
             -p system.top \
             -o heated_nvt.tpr >> $logFile 2>> $errFile 
@@ -867,7 +885,7 @@ cooling(){
         cp Heated_nvt/*.itp Cooling/. 
         cd Cooling
 
-        gmx grompp -f $MDP/prep_cooling.mdp \
+        gmx grompp -f $MDP/prep_cooling_sam.mdp \
             -c heated_nvt.gro \
             -p system.top \
             -o cooling.tpr >> $logFile 2>> $errFile 
