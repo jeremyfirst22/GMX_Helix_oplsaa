@@ -5,7 +5,7 @@ TOP=${PWD}
 MDP=$TOP/mdp_files
 FF=$TOP/GMXFF
 forceField=oplsaa
-dim=7.455
+dim=8.000
 fileName=$TOP/StartingStructures/folded.pdb
 waterFileName=$TOP/StartingStructures/tip3p.pdb 
 tbaFileName=$TOP/StartingStructures/tba.pdb 
@@ -34,7 +34,7 @@ HELP(){
     echo "  -w   Water structure PDB file: Default = StartingStrcutures/tip3p.pdb" 
     echo "  -b   TBA structure PDB file: Default = StartingStrcutures/tba.pdb" 
     echo "  -R   Volume ratio of TBA:Water in binary solvent: Default = 2"
-    echo "  -d   Box dimension (nm) : Default = 7.455 " 
+    echo "  -d   Box dimension (nm) : Default = 8.000 " 
     echo "  -m   Location of the mdp_files : Default = mdp_files"
     echo "  -p   Location of force field files. : Default = GMXFF"
     echo "  -n   Name of force field : Default = oplsaa"

@@ -5,7 +5,7 @@ TOP=${PWD}
 MDP=$TOP/mdp_files
 FF=$TOP/GMXFF
 forceField=oplsaa
-dim=7.455
+dim=8.000
 fileName=$TOP/StartingStructures/folded.pdb
 totSimTime=50
 SOL=water
@@ -28,7 +28,7 @@ HELP(){
     echo "  -c   Starting structure  (folded) PDB file: Default = StartingStructures/folded.pdb"
     echo "  -t   Maximum simulation time (ns) : Default = 50 "
     echo "  -a   Perform analyis on trajectory : Default = no"
-    echo "  -d   Box dimension (nm) : Default = 7.455 " 
+    echo "  -d   Box dimension (nm) : Default = 8.000 " 
     echo "  -m   Location of the mdp_files : Default = mdp_files"
     echo "  -p   Location of force field files. : Default = GMXFF"
     echo "  -n   Name of force field : Default = oplsaa"
