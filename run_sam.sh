@@ -630,8 +630,8 @@ build_system(){
         zdim=`tail -n1 solvent_npt.gro | awk '{print $3}'`
         ydim=`tail -n1 solvent_npt.gro | awk '{print $2}'`
         xdim=`tail -n1 solvent_npt.gro | awk '{print $1}'`
-        zshift=`cat nvt_relax.nopbc.gro | grep LIG | grep C10 | awk '{print $6}' | sort -n | tail -n1`
-        zshift=`echo "$zshift * -1" | bc -l`
+        zshift=`cat nvt_relax.nopbc.gro | grep LIG | grep C10 | awk '{ total += $6 } END { print total/NR }'`
+        zshift=`echo "$zshift * -1 + 0.1" | bc -l`
     
         cp nvt_relax.nopbc.gro bottom_boxed.gro 
         #gmx editconf -f nvt_relax.nopbc.gro \
