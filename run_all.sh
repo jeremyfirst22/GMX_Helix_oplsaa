@@ -96,7 +96,7 @@ if $prep ; then
                 echo "module load gromacs " >> submit_prep_${sol} 
                                                                                
                 echo >> submit_prep_${sol}
-                echo "bash run_${solvent}.sh -f folded " >> submit_prep_${sol}
+                echo "bash run_${solvent}.sh -f prep " >> submit_prep_${sol}
                 fi 
             sbatch submit_prep_${sol} 
             fi 
