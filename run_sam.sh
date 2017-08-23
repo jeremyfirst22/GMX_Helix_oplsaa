@@ -315,8 +315,8 @@ for i in range(numMols) :
         python make_position.py > position.dat 
         check position.dat 
         
-        xdim=`echo "$numMols * $spacing * c(4*a(1) / 6) " | bc -l`
-        ydim=`echo "$numMols * $spacing " | bc -l`
+        xdim=`echo "$numMols * $spacing * c(4*a(1) / 6) " | bc -l | awk '{printf "%f", $0}'`
+        ydim=`echo "$numMols * $spacing " | bc -l | awk '{printf "%f", $0}'`
         zdim=$xdim
 
         gmx insert-molecules -ci twisted.gro \
@@ -455,8 +455,8 @@ protein_steep(){
         check rotated.gro 
 
         ##This is the distance to the edge of the box. 
-        xshift=`echo "$xdim / 2" | bc -l`
-        yshift=`echo "$ydim / 2" | bc -l`
+        xshift=`echo "$xdim / 2" | bc -l | awk '{printf "%f", $0}'`
+        yshift=`echo "$ydim / 2" | bc -l | awk '{printf "%f", $0}'`
 
         zshift=`grep GLY rotated.gro | grep CA | awk '{total += $6} END {print total/NR}'`
         zshift=`echo "$zshift * -1 + $glyDist - 0.12" | bc -l | awk '{printf "%f", $0}'`
@@ -631,11 +631,11 @@ build_system(){
         ydim=`tail -n1 solvent_npt.gro | awk '{print $2}'`
         xdim=`tail -n1 solvent_npt.gro | awk '{print $1}'`
         zshift=`cat nvt_relax.nopbc.gro | grep LIG | grep C10 | awk '{total += $6} END {print total/NR}'`
-        zshift=`echo "$zshift * -1" | bc -l`
+        zshift=`echo "$zshift * -1" | bc -l | awk '{printf "%f", $0}'`
     
         cp nvt_relax.nopbc.gro bottom_boxed.gro 
     
-        zdim=`echo "$zdim - $zshift" | bc -l`
+        zdim=`echo "$zdim - $zshift" | bc -l | awk '{printf "%f", $0}'`
 
         gmx editconf -f solvent_npt.gro \
             -box $xdim $ydim $zdim \
@@ -643,7 +643,7 @@ build_system(){
         check new_box.gro 
 
         zshift=`cat new_box.gro | grep SOL | grep OW | awk '{print $6}' | sort -n | uniq | tail -n1`
-        zshift=`echo "$zdim - $zshift" | bc -l`
+        zshift=`echo "$zdim - $zshift" | bc -l | awk '{printf "%f", $0}'`
     
         gmx editconf -f new_box.gro \
             -translate 0 0 $zshift \
@@ -653,7 +653,7 @@ build_system(){
         head -n1 shifted.gro > system.gro 
         protAtoms=`cat shifted.gro | tail -n +2 | head -n 1`
         samAtoms=`cat bottom_boxed.gro | tail -n +2 | head -n 1`
-        totAtoms=`echo "$protAtoms + $samAtoms" | bc -l`
+        totAtoms=`echo "$protAtoms + $samAtoms" | bc -l | awk '{printf "%f", $0}'`
 
         echo $totAtoms >> system.gro 
         tail -n +3 shifted.gro | sed '$ d' | grep -v 'SOL' | grep -v 'Cl-' >> system.gro 
