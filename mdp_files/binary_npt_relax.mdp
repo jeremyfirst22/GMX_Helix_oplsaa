@@ -6,11 +6,16 @@ nsteps                = 50000
 comm-mode             = Linear
 comm-grps             = System               
 
-; Output control 
-nstxout               = 2500
-nstvout               = 2500
-nstlog                = 100
-nstenergy             = 100
+; 7.3.8 Output Control
+nstxout                 = 25000         ; [steps] freq to write coordinates to trajectory
+nstvout                 = 25000         ; [steps] freq to write velocities to trajectory
+nstfout                 = 25000         ; [steps] freq to write forces to trajectory
+nstlog                  = 100           ; [steps] freq to write energies to log file
+nstenergy               = 100           ; [steps] freq to write energies to energy file
+nstxout-compressed      = 100           ; [steps] freq to write coordinates to xtc trajectory
+compressed-x-precision  = 1000          ; [real] precision to write xtc trajectory
+compressed-x-grps       = System        ; group(s) to write to xtc trajectory
+energygrps              = System        ; group(s) to write to energy file
 
 ; Neighbor searching
 cutoff-scheme         = group
