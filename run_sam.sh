@@ -15,6 +15,8 @@ fileName=$TOP/StartingStructures/folded.pdb
 totSimTime=50
 SOL=sam
 MOLEC=folded_$SOL
+zBuff=0.5 #nm. This is the spacing of the SAM layer off the z intercept. Must not be zero, 
+          ##    or the SAM splits during NPT box growth. 
 
 verbose=false
 analysis=false
@@ -139,6 +141,7 @@ prep(){
     build_system
     system_steep
     system_nvt
+    system_npt
     heating
     heated
     cooling
@@ -633,9 +636,12 @@ build_system(){
         zshift=`cat nvt_relax.nopbc.gro | grep LIG | grep C10 | awk '{total += $6} END {print total/NR}'`
         zshift=`echo "$zshift * -1" | bc -l | awk '{printf "%f", $0}'`
     
-        cp nvt_relax.nopbc.gro bottom_boxed.gro 
+        gmx editconf -f nvt_relax.nopbc.gro \
+            -translate 0 0 $zBuff \
+            -o bottom_boxed.gro >> $logFile 2>> $errFile 
+        check bottom_boxed.gro
     
-        zdim=`echo "$zdim - $zshift" | bc -l | awk '{printf "%f", $0}'`
+        zdim=`echo "$zdim - $zshift - $zBuff" | bc -l | awk '{printf "%f", $0}'`
 
         gmx editconf -f solvent_npt.gro \
             -box $xdim $ydim $zdim \
@@ -643,7 +649,7 @@ build_system(){
         check new_box.gro 
 
         zshift=`cat new_box.gro | grep SOL | grep OW | awk '{print $6}' | sort -n | uniq | tail -n1`
-        zshift=`echo "$zdim - $zshift" | bc -l | awk '{printf "%f", $0}'`
+        zshift=`echo "$zdim - $zshift + $zBuff " | bc -l | awk '{printf "%f", $0}'`
     
         gmx editconf -f new_box.gro \
             -translate 0 0 $zshift \
@@ -791,6 +797,32 @@ system_nvt(){
         gmx mdrun -deffnm system_nvt >> $logFile 2>> $errFile 
         check system_nvt.gro 
     
+        clean
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+} 
+
+system_npt(){
+    printf "\t\tSystem NPT relaxation....................." 
+    if [ ! -f System_npt/system_npt.gro ] ; then 
+        create_dir System_npt
+        
+        cp System_nvt/system.top System_npt/.
+        cp System_nvt/system_nvt.gro System_npt/.
+        cp System_nvt/*.itp System_npt/. 
+        cd System_npt
+
+        gmx grompp -f $MDP/system_semiisotropic_npt_relax.mdp \
+            -p system.top \
+            -c system_nvt.gro \
+            -o system_npt.tpr >> $logFile 2>> $errFile 
+        check system_npt.tpr 
+
+        gmx mdrun -deffnm system_npt >> $logFile 2>> $errFile 
+        check system_npt.gro 
     
         clean
         printf "Success\n" 
@@ -805,9 +837,9 @@ heating(){
     if [ ! -f Heating/heating.gro ] ; then 
         create_dir Heating
         
-        cp System_nvt/system_nvt.gro Heating/. 
-        cp System_nvt/system.top Heating/. 
-        cp System_nvt/*.itp Heating/. 
+        cp System_npt/system_npt.gro Heating/. 
+        cp System_npt/system.top Heating/. 
+        cp System_npt/*.itp Heating/. 
         cd Heating
 
         includeLine=`cat -n system.top | grep '; Include Position restraint file' | awk '{print $1}' | tail -n1 `
@@ -823,12 +855,12 @@ heating(){
 
         echo "[ position_restraints ]" > posre_LIG.itp 
         echo ";; Pin sulfur atoms to spacing found on SAM" >> posre_LIG.itp 
-        for atom in `grep LIG system_nvt.gro | awk '{print $2"\t"$3}' | grep "^[SC]" | awk '{print $2}'` ; do 
+        for atom in `grep LIG system_npt.gro | awk '{print $2"\t"$3}' | grep "^[SC]" | awk '{print $2}'` ; do 
             printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 1000  10000 1000 >> posre_LIG.itp 
         done 
 
         gmx grompp -f $MDP/prep_heating_sam.mdp \
-            -c system_nvt.gro \
+            -c system_npt.gro \
             -p system.top \
             -o heating.tpr >> $logFile 2>> $errFile  
         check heating.tpr 
