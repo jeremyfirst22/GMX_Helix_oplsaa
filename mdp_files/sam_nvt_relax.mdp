@@ -5,7 +5,7 @@ define                  = -DPOSSULRES     ; defines to pass to the preprocessor
 integrator              = md                    ; md integrator
 tinit                   = 0                     ; [ps] starting time for run
 dt                      = 0.002                 ; [ps] time step for integration
-nsteps                  = 50000                 ; maximum number of steps to integrate, 0.002 * 25,000 = 50 ps
+nsteps                  = 25000                 ; maximum number of steps to integrate, 0.002 * 25,000 = 50 ps
 comm_mode               = Linear                ; remove center of mass translation
 nstcomm                 = 1                     ; [steps] frequency of mass motion removal
 comm_grps               = System                ; group(s) for center of mass motion removal
