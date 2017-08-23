@@ -5,7 +5,7 @@ TOP=${PWD}
 MDP=$TOP/mdp_files
 FF=$TOP/GMXFF
 forceField=oplsaa
-dim=8.000
+dim=7.650 
 fileName=$TOP/StartingStructures/folded.pdb
 waterFileName=$TOP/StartingStructures/tip3p.pdb 
 tbaFileName=$TOP/StartingStructures/tba.pdb 
@@ -329,6 +329,7 @@ print \"%i\t%i\"%(round(nTBA),round(nH2O))" > calc_num_molecules.py
 
         gmx insert-molecules -ci tba.pdb \
             -box $dim $dim $dim \
+            -allpair \
             -nmol $numTBA \
             -o tert_box.gro >> $logFile 2>> $errFile 
         check tert_box.gro 
