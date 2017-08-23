@@ -90,7 +90,7 @@ if $prep ; then
                 echo "#SBATCH -o prep_${sol}.o%j" >> submit_prep_${sol}
                 echo "#SBATCH -n 16 " >> submit_prep_${sol}
                 echo "#SBATCH -p normal " >> submit_prep_${sol}
-                echo "#SBATCH -t 48:00:00" >> submit_prep_${sol}
+                echo "#SBATCH -t 03:00:00" >> submit_prep_${sol}
                 echo "#SBATCH -A Ras" >> submit_prep_${sol}
                 echo "#SBATCH --mail-user=jeremy_first@utexas.edu" >> submit_prep_${sol}
                 echo "#SBATCH --mail-type=all" >> submit_prep_${sol}
