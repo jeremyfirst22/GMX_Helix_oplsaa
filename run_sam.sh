@@ -356,7 +356,7 @@ for i in range(numMols) :
         yshift=`grep LIG boxed.gro | grep " H22 " | awk '{print $5}' | sort -n | uniq | head -n1`
         xshift=`grep LIG boxed.gro | grep " H22 " | awk '{print $4}' | sort -n | uniq | head -n1`
     
-        zshift=`echo "-$zshift + 0.10" | bc -l | awk '{printf "%f", $0}'`
+        zshift=`echo "-$zshift " | bc -l | awk '{printf "%f", $0}'`
         yshift=`echo "-$yshift " | bc -l | awk '{printf "%f", $0}'`
         xshift=`echo "-$xshift " | bc -l | awk '{printf "%f", $0}'`
 
@@ -458,8 +458,8 @@ protein_steep(){
         xshift=`echo "$xdim / 2" | bc -l`
         yshift=`echo "$ydim / 2" | bc -l`
 
-        zshift=`grep GLY rotated.gro | grep CA | awk '{print $6}' | sort -nr | tail -n1`
-        zshift=`echo "$zshift * -1 + $glyDist" | bc -l`
+        zshift=`grep GLY rotated.gro | grep CA | awk '{total += $6} END {print total/NR}'`
+        zshift=`echo "$zshift * -1 + $glyDist - 0.12" | bc -l | awk '{printf "%f", $0}'`
         gmx editconf -f rotated.gro \
             -translate $xshift $yshift $zshift \
             -o translated.gro >> $logFile 2>> $errFile  
@@ -630,14 +630,10 @@ build_system(){
         zdim=`tail -n1 solvent_npt.gro | awk '{print $3}'`
         ydim=`tail -n1 solvent_npt.gro | awk '{print $2}'`
         xdim=`tail -n1 solvent_npt.gro | awk '{print $1}'`
-        zshift=`cat nvt_relax.nopbc.gro | grep LIG | grep C10 | awk '{ total += $6 } END { print total/NR }'`
-        zshift=`echo "$zshift * -1 + 0.1" | bc -l`
+        zshift=`cat nvt_relax.nopbc.gro | grep LIG | grep C10 | awk '{total += $6} END {print total/NR}'`
+        zshift=`echo "$zshift * -1" | bc -l`
     
         cp nvt_relax.nopbc.gro bottom_boxed.gro 
-        #gmx editconf -f nvt_relax.nopbc.gro \
-        #    -translate 0 0 $zshift \
-        #    -o bottom_boxed.gro >> $logFile 2>> $errFile 
-        #check bottom_boxed.gro 
     
         zdim=`echo "$zdim - $zshift" | bc -l`
 
@@ -985,63 +981,6 @@ production(){
         printf "Skipped\n"
         fi  
 } 
-
-#production(){
-#    printf "\t\tProduction run............................" 
-#    if [ ! -f Production/${MOLEC}_${totSimTime}ns.gro ] ; then 
-#        printf "\n" 
-#        create_dir Production
-#        
-#        cp Solvent_npt/neutral.top Production/.
-#        cp Solvent_npt/solvent_npt.gro Production/.
-#        cp Solvent_npt/*.itp Production/. 
-#        cd Production
-#
-#        if [ ! -f $MOLEC.tpr ] ; then 
-#            gmx grompp -f $MDP/production_solvent.mdp \
-#                -p neutral.top \
-#            -c solvent_npt.gro \
-#            -o $MOLEC.tpr >> $logFile 2>> $errFile 
-#        fi 
-#        check $MOLEC.tpr 
-#
-#        simTime=0
-#        while [ $simTime -lt $totSimTime ] ; do 
-#            ((simTime+=50))
-#            printf "\t\t\t%10i ns....................." $simTime
-#
-#            if [ ! -f ${MOLEC}_${simTime}ns.gro ] ; then 
-#                if [ ! -f $simTime.tpr ] ; then 
-#                    gmx convert-tpr -s $MOLEC.tpr \
-#                        -until $((simTime*1000)) \
-#                        -o $simTime.tpr >> $logFile 2>> $errFile 
-#                    fi 
-#                check $simTime.tpr 
-#
-#                if [ -f $MOLEC.cpt ] ; then 
-#                    gmx mdrun -deffnm $MOLEC \
-#                        -s $simTime.tpr \
-#                        -cpi $MOLEC.cpt >> $logFile 2>> $errFile  
-#                else 
-#                    gmx mdrun -deffnm $MOLEC \
-#                        -s $simTime.tpr >> $logFile 2>> $errFile
-#                    fi 
-#                check $MOLEC.gro 
-#                mv $MOLEC.gro ${MOLEC}_${simTime}ns.gro 
-#                check ${MOLEC}_${simTime}ns.gro 
-#                printf "Success\n" 
-#            else       
-#                printf "Skipped\n" 
-#                fi 
-#            done 
-#
-#        printf "\n" 
-#        clean
-#        cd ../
-#    else
-#        printf "Skipped\n"
-#        fi  
-#} 
 
 dssp(){
     printf "\t\tRunning dssp analysis....................." 
