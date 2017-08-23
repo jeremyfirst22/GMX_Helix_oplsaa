@@ -58,6 +58,11 @@ if ! $prep && ! $folded && ! $unfolded ; then
     exit 
     fi 
 
+if [ ! -z $WORK ] && ! $stampede ; then 
+    echo "Must use -s flag to run on stampede"
+    exit
+    fi 
+
 solventList="water tert sam" 
 molList="folded unfolded" 
 
