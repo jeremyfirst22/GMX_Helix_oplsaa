@@ -44,6 +44,8 @@ HELP(){
     echo "              Default = 1000 "
     echo "  -R   Restraint force constant (kJ/mol/nm) of the "bond" keeping sulfur atoms in plane" 
     echo "              Default = 200000" 
+    echo "  -z   Distance of the bottom of the SAM layer to the z-axis of the simulation box. " 
+    echo "              Default = 0.5 " 
     echo "  -m   Location of the mdp_files : Default = mdp_files"
     echo "  -p   Location of force field files. : Default = GMXFF"
     echo "  -n   Name of force field : Default = oplsaa"
@@ -53,7 +55,7 @@ HELP(){
     exit
 }
 
-while getopts :f:c:t:an:d:D:g:r:R:m:p:n:vh opt; do 
+while getopts :f:c:t:an:d:D:g:r:R:z:m:p:n:vh opt; do 
    case $opt in 
       f) 
         fold=$OPTARG
@@ -81,6 +83,9 @@ while getopts :f:c:t:an:d:D:g:r:R:m:p:n:vh opt; do
         ;; 
       R) 
         sulRest=$OPTARG
+        ;; 
+      z) 
+        zBuff=$OPTARG
         ;; 
       m) 
         MDP=${TOP}/$OPTARG
@@ -169,6 +174,7 @@ checkInput(){
         echo "Sulfur restraint : $sulRest" 
         echo "Perform analysis : $analysis " 
         echo "Verbose = $verbose"
+        echo "Distance to z-axis: $zBuff" 
         echo "mdp files = $MDP " 
         echo "force field directory = $FF" 
         echo "force field name = $forceField " 
@@ -641,7 +647,7 @@ build_system(){
             -o bottom_boxed.gro >> $logFile 2>> $errFile 
         check bottom_boxed.gro
     
-        zdim=`echo "$zdim - $zshift - $zBuff" | bc -l | awk '{printf "%f", $0}'`
+        zdim=`echo "$zdim - $zshift" | bc -l | awk '{printf "%f", $0}'`
 
         gmx editconf -f solvent_npt.gro \
             -box $xdim $ydim $zdim \
