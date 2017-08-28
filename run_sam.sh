@@ -944,11 +944,11 @@ cooling(){
 
 production(){
     printf "\t\tProduction run............................" 
-    if [[ ! -s prep/Cooling/cooling.gro || ! -s prep/System_nvt/system_nvt.gro ]] ; then 
+    if [[ ! -s prep/Cooling/cooling.gro || ! -s prep/System_npt/system_npt.gro ]] ; then 
         echo ; echo 
         echo "ERROR: You must run prep first!" 
         fi 
-    check prep/Cooling/cooling.gro prep/System_nvt/system_nvt.gro 
+    check prep/Cooling/cooling.gro prep/System_npt/system_npt.gro 
 
     if [ ! -d $fold ] ; then mkdir $fold ; fi 
     cd $fold 
@@ -958,12 +958,12 @@ production(){
         printf "\n" 
         create_dir Production
         
-        cp ../prep/System_nvt/system.top Production/.
-        cp ../prep/System_nvt/*.itp Production/. 
+        cp ../prep/System_npt/system.top Production/.
+        cp ../prep/System_npt/*.itp Production/. 
 
         if [ $fold = "folded" ] ; then 
-            cp ../prep/System_nvt/system_nvt.gro Production/.
-            startStructure=system_nvt.gro 
+            cp ../prep/System_npt/system_npt.gro Production/.
+            startStructure=system_npt.gro 
             MOLEC=folded_$SOL
         else 
             cp ../prep/Cooling/cooling.gro Production/.
