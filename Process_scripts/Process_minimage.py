@@ -24,7 +24,7 @@ xmax=50##Starting xlim
 for solvent in ['water','tert','sam'] : 
     ax = axarr[index%figRows]
     for state in ['folded','unfolded'] : 
-        datafile = '%s_%s/minimage/mindist.xvg'%(state,solvent) 
+        datafile = '%s/%s/minimage/mindist.xvg'%(solvent,state) 
 
         try : 
             data = np.genfromtxt(datafile,skip_header=27) 

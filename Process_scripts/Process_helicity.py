@@ -50,11 +50,11 @@ for row,solvent in enumerate(['water','tert','sam']):
         indFig.text(0.5,0.05, "Time (ns)", ha='center', va='center') 
         indFig.text(0.05,0.5, r"Helical fraction",ha='center',va='center',rotation='vertical') 
         ax = axarr[row,col]
-        datafile = '%s_%s/%s'%(state,solvent,inFile) 
+        datafile = '%s/%s/%s'%(solvent,state,inFile) 
         try : 
             data = np.genfromtxt(datafile) 
         except IOError : 
-            print "No file found for %s %s"%(state,solvent) 
+            print "No file found for %s/%s"%(solvent,state) 
             continue 
 
         frameNumber = len(data)

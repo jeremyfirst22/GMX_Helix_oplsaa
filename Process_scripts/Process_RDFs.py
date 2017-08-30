@@ -35,7 +35,7 @@ for sol in 'tert', 'water', 'sam' :
         outname = os.path.join(curdir,outname)
         
         for state in 'folded', 'unfolded' : 
-            datafile = "%s_%s/rdf/%s"%(state,sol,inFile) 
+            datafile = "%s,%s/rdf/%s"%(sol,state,inFile) 
             try : 
                 data = np.genfromtxt(datafile,skip_header=16) 
             except IOError :

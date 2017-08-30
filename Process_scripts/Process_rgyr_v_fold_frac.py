@@ -50,8 +50,8 @@ for row, solvent in enumerate(['water','tert','sam']) :
 
         ax = axarr[row,col]
 
-        datafile = "%s_%s/%s"%(state,solvent,inFile)  
-        datafile2= "%s_%s/%s"%(state,solvent,inFile2) 
+        datafile = "%s/%s/%s"%(solvent,state,inFile)  
+        datafile2= "%s/%s/%s"%(solvent,state,inFile2) 
         
         try : 
             data = np.genfromtxt(datafile,skip_header=25) 
