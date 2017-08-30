@@ -44,7 +44,7 @@ HELP(){
     exit
 }
 
-while getopts :f:c:t:a:w:b:R:d:am:p:n:vh opt; do 
+while getopts :f:c:t:aw:b:R:d:m:p:n:vh opt; do 
    case $opt in 
       f) 
         fold=$OPTARG
@@ -810,15 +810,15 @@ data = np.genfromtxt('scount.xvg',skip_header=header)
 col1 = data[:,0]
 
 try : 
-    col2 = data[:,int(alpha)]
+    col2 = data[:,int(alpha)+1]
 except NameError : 
     col2 = np.zeros(len(data[:,0])) 
 try : 
-    col3a = data[:,int(three)]
+    col3a = data[:,int(three)+1]
 except NameError : 
     col3a = np.zeros(len(data[:,0])) 
 try : 
-    col3b = data[:,int(five)]
+    col3b = data[:,int(five)+1]
 except NameError : 
     col3b = np.zeros(len(data[:,0])) 
 col3=col3a + col3b
