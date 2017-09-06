@@ -127,7 +127,6 @@ main(){
         if $analysis ; then 
             analysis
             fi 
-        cd ../
         fi 
     cd ../
     printf "\n\n\t\t*** Program Ending    ***\n\n" 
@@ -155,10 +154,12 @@ prep(){
 
 analysis(){
     if [ ! -d $fold ] ; then mkdir $fold ; fi 
+    cd $fold 
     dssp
     rgyr
     minimage
     rdf
+    cd ../
 }
 
 checkInput(){
@@ -1017,6 +1018,7 @@ production(){
     else
         printf "Skipped\n"
         fi  
+    cd ../
 } 
 
 dssp(){
