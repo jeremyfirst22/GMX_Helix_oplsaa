@@ -5,6 +5,7 @@ prep=false
 folded=false
 unfolded=false
 stampede=false
+simTime=50
 
 HELP(){
     echo 
@@ -16,12 +17,13 @@ HELP(){
     echo "    -p All prep    " 
     echo "    -f All three folded " 
     echo "    -u All three unfolded system " 
+    echo "    -t Simulation time (Default = 50ns) " 
     echo "    -h Print this help message and exit " 
     echo 
     exit
 }
 
-while getopts sapfuh opt ; do 
+while getopts sapfut:h opt ; do 
     case $opt in 
        s) 
          stampede=true 
@@ -37,6 +39,9 @@ while getopts sapfuh opt ; do
          ;; 
        u) 
          unfolded=true
+         ;; 
+       t) 
+         simTime=$OPTARG
          ;; 
        :) 
          echo " option $OPTARG requires an argument"
@@ -62,6 +67,10 @@ if [ ! -z $WORK ] && ! $stampede ; then
     echo "Must use -s flag to run on stampede"
     exit
     fi 
+if [ $simTime -lt 50 ] ; then 
+    echo "Simulation time must be greater than 50!" 
+    exit 
+    fi 
 
 solventList="water tert sam" 
 molList="folded unfolded" 
@@ -83,26 +92,25 @@ if $prep ; then
         if ! $stampede ; then 
             bash run_${solvent}.sh -f prep 
         else 
-            if [ ! -f submit_prep_${sol} ] ; then 
-                echo "#!/bin/bash" > submit_prep_${sol}
-                echo >> submit_prep_${sol}
-                echo "#SBATCH -J prep_${sol} " >> submit_prep_${sol}
-                echo "#SBATCH -o prep_${sol}.o%j" >> submit_prep_${sol}
-                echo "#SBATCH -n 16 " >> submit_prep_${sol}
-                echo "#SBATCH -p normal " >> submit_prep_${sol}
-                echo "#SBATCH -t 03:00:00" >> submit_prep_${sol}
-                echo "#SBATCH -A Ras" >> submit_prep_${sol}
-                echo "#SBATCH --mail-user=jeremy_first@utexas.edu" >> submit_prep_${sol}
-                echo "#SBATCH --mail-type=all" >> submit_prep_${sol}
-                
-                echo >> submit_prep_${sol}
-                echo "module load boost " >> submit_prep_${sol}
-                echo "module load cxx11 " >> submit_prep_${sol}
-                echo "module load gromacs " >> submit_prep_${sol} 
-                                                                               
-                echo >> submit_prep_${sol}
-                echo "bash run_${solvent}.sh -f prep " >> submit_prep_${sol}
-                fi 
+            echo "#!/bin/bash" > submit_prep_${sol}
+            echo >> submit_prep_${sol}
+            echo "#SBATCH -J prep_${sol} " >> submit_prep_${sol}
+            echo "#SBATCH -o prep_${sol}.o%j" >> submit_prep_${sol}
+            echo "#SBATCH -n 16 " >> submit_prep_${sol}
+            echo "#SBATCH -p normal " >> submit_prep_${sol}
+            echo "#SBATCH -t 03:00:00" >> submit_prep_${sol}
+            echo "#SBATCH -A Ras" >> submit_prep_${sol}
+            echo "#SBATCH --mail-user=jeremy_first@utexas.edu" >> submit_prep_${sol}
+            echo "#SBATCH --mail-type=all" >> submit_prep_${sol}
+            
+            echo >> submit_prep_${sol}
+            echo "module load boost " >> submit_prep_${sol}
+            echo "module load cxx11 " >> submit_prep_${sol}
+            echo "module load gromacs " >> submit_prep_${sol} 
+                                                                           
+            echo >> submit_prep_${sol}
+            echo "bash run_${solvent}.sh -f prep " >> submit_prep_${sol}
+
             sbatch submit_prep_${sol} 
             fi 
         done 
@@ -125,26 +133,25 @@ if $folded ; then
         if ! $stampede ; then 
             bash run_${solvent}.sh -f folded
         else 
-            if [ ! -f submit_fol_${sol} ] ; then 
-                echo "#!/bin/bash" > submit_fol_${sol}
-                echo >> submit_fol_${sol}
-                echo "#SBATCH -J fol_${sol} " >> submit_fol_${sol}
-                echo "#SBATCH -o fol_${sol}.o%j" >> submit_fol_${sol}
-                echo "#SBATCH -n 16 " >> submit_fol_${sol}
-                echo "#SBATCH -p normal " >> submit_fol_${sol}
-                echo "#SBATCH -t 48:00:00" >> submit_fol_${sol}
-                echo "#SBATCH -A Ras" >> submit_fol_${sol}
-                echo "#SBATCH --mail-user=jeremy_first@utexas.edu" >> submit_fol_${sol}
-                echo "#SBATCH --mail-type=all" >> submit_fol_${sol}
-                
-                echo >> submit_fol_${sol}
-                echo "module load boost " >> submit_fol_${sol}
-                echo "module load cxx11 " >> submit_fol_${sol}
-                echo "module load gromacs " >> submit_fol_${sol} 
-                                                                               
-                echo >> submit_fol_${sol}
-                echo "bash run_${solvent}.sh -f folded " >> submit_fol_${sol}
-                fi 
+            echo "#!/bin/bash" > submit_fol_${sol}
+            echo >> submit_fol_${sol}
+            echo "#SBATCH -J fol_${sol} " >> submit_fol_${sol}
+            echo "#SBATCH -o fol_${sol}.o%j" >> submit_fol_${sol}
+            echo "#SBATCH -n 16 " >> submit_fol_${sol}
+            echo "#SBATCH -p normal " >> submit_fol_${sol}
+            echo "#SBATCH -t 48:00:00" >> submit_fol_${sol}
+            echo "#SBATCH -A Ras" >> submit_fol_${sol}
+            echo "#SBATCH --mail-user=jeremy_first@utexas.edu" >> submit_fol_${sol}
+            echo "#SBATCH --mail-type=all" >> submit_fol_${sol}
+            
+            echo >> submit_fol_${sol}
+            echo "module load boost " >> submit_fol_${sol}
+            echo "module load cxx11 " >> submit_fol_${sol}
+            echo "module load gromacs " >> submit_fol_${sol} 
+                                                                           
+            echo >> submit_fol_${sol}
+            echo "bash run_${solvent}.sh -f folded -t $simTime " >> submit_fol_${sol}
+
             sbatch submit_fol_${sol} 
             fi 
         done 
@@ -167,26 +174,25 @@ if $unfolded ; then
         if ! $stampede ; then 
             bash run_${solvent}.sh -f unfolded
         else 
-            if [ ! -f submit_unf_${sol} ] ; then 
-                echo "#!/bin/bash" > submit_unf_${sol}
-                echo >> submit_unf_${sol}
-                echo "#SBATCH -J unf_${sol} " >> submit_unf_${sol}
-                echo "#SBATCH -o unf_${sol}.o%j" >> submit_unf_${sol}
-                echo "#SBATCH -n 16 " >> submit_unf_${sol}
-                echo "#SBATCH -p normal " >> submit_unf_${sol}
-                echo "#SBATCH -t 48:00:00" >> submit_unf_${sol}
-                echo "#SBATCH -A Ras" >> submit_unf_${sol}
-                echo "#SBATCH --mail-user=jeremy_first@utexas.edu" >> submit_unf_${sol}
-                echo "#SBATCH --mail-type=all" >> submit_unf_${sol}
-                
-                echo >> submit_unf_${sol}
-                echo "module load boost " >> submit_unf_${sol}
-                echo "module load cxx11 " >> submit_unf_${sol}
-                echo "module load gromacs " >> submit_unf_${sol} 
-                                                                               
-                echo >> submit_unf_${sol}
-                echo "bash run_${solvent}.sh -f unfolded " >> submit_unf_${sol}
-                fi 
+            echo "#!/bin/bash" > submit_unf_${sol}
+            echo >> submit_unf_${sol}
+            echo "#SBATCH -J unf_${sol} " >> submit_unf_${sol}
+            echo "#SBATCH -o unf_${sol}.o%j" >> submit_unf_${sol}
+            echo "#SBATCH -n 16 " >> submit_unf_${sol}
+            echo "#SBATCH -p normal " >> submit_unf_${sol}
+            echo "#SBATCH -t 48:00:00" >> submit_unf_${sol}
+            echo "#SBATCH -A Ras" >> submit_unf_${sol}
+            echo "#SBATCH --mail-user=jeremy_first@utexas.edu" >> submit_unf_${sol}
+            echo "#SBATCH --mail-type=all" >> submit_unf_${sol}
+            
+            echo >> submit_unf_${sol}
+            echo "module load boost " >> submit_unf_${sol}
+            echo "module load cxx11 " >> submit_unf_${sol}
+            echo "module load gromacs " >> submit_unf_${sol} 
+                                                                           
+            echo >> submit_unf_${sol}
+            echo "bash run_${solvent}.sh -f unfolded -t $simTime" >> submit_unf_${sol}
+
             sbatch submit_unf_${sol} 
             fi 
         done 
