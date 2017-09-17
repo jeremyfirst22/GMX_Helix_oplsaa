@@ -88,13 +88,13 @@ for row,solvent in enumerate(['water','tert','sam']):
         if x.max() > xmax : 
             xmax = x.max()
         
-        ax.fill_between(x,0                ,y3binned         ,facecolor='r',linewidth=0.0)
-        ax.fill_between(x,y3binned         ,y3binned+y2binned,facecolor='g',linewidth=0.0) 
-        ax.fill_between(x,y3binned+y2binned,1                ,facecolor='b',linewidth=0.0) 
+        ax.fill_between(x,0                ,y3binned         ,facecolor='r',linewidth=0.0, edgecolor='none')
+        ax.fill_between(x,y3binned         ,y3binned+y2binned,facecolor='g',linewidth=0.0, edgecolor='none') 
+        ax.fill_between(x,y3binned+y2binned,1                ,facecolor='b',linewidth=0.0, edgecolor='none') 
 
-        indAx.fill_between(x,0                ,y3binned         ,facecolor='r',linewidth=0.0)
-        indAx.fill_between(x,y3binned         ,y3binned+y2binned,facecolor='g',linewidth=0.0) 
-        indAx.fill_between(x,y3binned+y2binned,1                ,facecolor='b',linewidth=0.0) 
+        indAx.fill_between(x,0                ,y3binned         ,facecolor='r',linewidth=0.0, edgecolor='none')
+        indAx.fill_between(x,y3binned         ,y3binned+y2binned,facecolor='g',linewidth=0.0, edgecolor='none') 
+        indAx.fill_between(x,y3binned+y2binned,1                ,facecolor='b',linewidth=0.0, edgecolor='none') 
         
         ax.set_xlim(0,np.max(x)) 
         ax.set_ylim(0,1)
