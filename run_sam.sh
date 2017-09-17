@@ -159,6 +159,8 @@ analysis(){
     rgyr
     minimage
     rdf
+    nopbc
+    rmsd 
     cd ../
 }
 
@@ -1187,6 +1189,71 @@ rdf(){
             -n index.ndx \
             -o sam_lys.xvg >> $logFile 2>> $errFile 
         check sam_lys.xvg 
+
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
+nopbc(){
+    printf "\t\tCreating nopbc copy......................." 
+    if [ ! -f nopbc/fit.xtc ] ; then 
+        create_dir nopbc
+        cd nopbc
+        clean 
+
+        if [ $fold = "folded" ] ; then 
+            startStructure=system_npt.gro 
+            MOLEC=folded_$SOL
+        else 
+            startStructure=cooling.gro 
+            MOLEC=unfolded_$SOL
+            fi 
+
+        echo "1 | 14" > selection.dat 
+        echo "q" >> selection.dat 
+
+        cat selection.dat | gmx make_ndx -f ../Production/$MOLEC.tpr >> $logFile 2>> $errFile 
+        check index.ndx 
+
+        echo "Protein_LIG" | gmx trjconv -f ../Production/$startStructure \
+            -s ../Production/$MOLEC.tpr \
+            -n index.ndx \
+            -pbc mol \
+            -ur compact \
+            -o fit.gro >> $logFile 2>> $errFile 
+        check fit.gro 
+
+        echo "Protein Protein_LIG" | gmx trjconv -f ../Production/$MOLEC.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -n index.ndx \
+            -fit transxy \
+            -pbc res \
+            -dt 40 \
+            -ur compact \
+            -o fit.xtc >> $logFile 2>> $errFile 
+        check fit.xtc 
+
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
+rmsd(){
+    printf "\t\tCalculating RMSD.........................." 
+    if [ ! -f rmsd/rmsd.xvg ] ; then 
+        create_dir rmsd
+        cd rmsd
+        clean 
+
+        echo "Backbone Backbone" | gmx rms -f ../Production/$MOLEC.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -o rmsd.xvg >> $logFile 2>> $errFile 
+        check rmsd.xvg  
 
         printf "Success\n" 
         cd ../

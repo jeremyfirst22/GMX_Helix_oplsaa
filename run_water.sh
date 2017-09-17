@@ -121,6 +121,8 @@ analysis(){
     rgyr
     minimage
     rdf
+    nopbc
+    rmsd
     cd ../
 }
 
@@ -701,6 +703,76 @@ rdf(){
             -n index.ndx \
             -o lys_wat.xvg >> $logFile 2>> $errFile 
         check lys_wat.xvg 
+
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
+nopbc(){
+    printf "\t\tCreating smoothed trajectory.............." 
+    if [ ! -f nopbc/smooth.xtc ] ; then 
+        create_dir nopbc
+        cd nopbc
+        clean 
+
+        if [ $fold = "folded" ] ; then 
+            startStructure=solvent_npt.gro 
+            MOLEC=folded_$SOL
+        else 
+            startStructure=cooling.gro 
+            MOLEC=unfolded_$SOL
+            fi 
+
+        echo "Protein Protein" | gmx trjconv -f ../Production/$startStructure \
+            -s ../Production/$MOLEC.tpr \
+            -pbc mol \
+            -ur compact \
+            -center \
+            -o nopbc.gro >> $logFile 2>> $errFile 
+        check nopbc.gro 
+
+        echo "Protein Protein" | gmx trjconv -f ../Production/$MOLEC.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -pbc mol \
+            -ur compact \
+            -center \
+            -dt 40 \
+            -o nopbc.xtc >> $logFile 2>> $errFile 
+        check nopbc.xtc 
+
+        echo "Backbone Protein" | gmx trjconv -f nopbc.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -fit rot+trans \
+            -o fit.xtc >> $logFile 2>> $errFile 
+        check fit.xtc
+
+        echo "Backbone Protein" | gmx trjconv -f fit.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -fit progressive \
+            -o smooth.xtc >> $logFile 2>> $errFile 
+        check smooth.xtc 
+
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
+rmsd(){
+    printf "\t\tCalculating RMSD.........................." 
+    if [ ! -f rmsd/rmsd.xvg ] ; then 
+        create_dir rmsd
+        cd rmsd
+        clean 
+
+        echo "Backbone Backbone" | gmx rms -f ../Production/$MOLEC.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -o rmsd.xvg >> $logFile 2>> $errFile 
+        check rmsd.xvg  
 
         printf "Success\n" 
         cd ../
