@@ -139,9 +139,10 @@ analysis(){
     dssp
     rgyr
     minimage
-    rdf
+#    rdf
     nopbc
     rmsd
+    cd_spectra
     cd ../
 }
 
@@ -1010,6 +1011,34 @@ rmsd(){
             -s ../Production/$MOLEC.tpr \
             -o rmsd.xvg >> $logFile 2>> $errFile 
         check rmsd.xvg  
+
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
+cd_spectra(){
+    printf "\t\tExtracting frames for DichroCalc.........." 
+    if [ ! -f cd_spectra/extract.tar.gz ] ; then 
+        create_dir cd_spectra
+        cd cd_spectra
+        clean 
+        create_dir extract
+        cd extract
+        clean 
+
+        echo 'Protein' | gmx trjconv -f ../../Production/$MOLEC.xtc \
+            -s ../../Production/$MOLEC.tpr \
+            -dt 100 \
+            -pbc mol \
+            -sep \
+            -o frame.pdb >> $logFile 2>> $errFile 
+        cd ../
+
+        tar cvfz extract.tar.gz extract >> $logFile 2>> $errFile 
+        check extract.tar.gz 
 
         printf "Success\n" 
         cd ../
