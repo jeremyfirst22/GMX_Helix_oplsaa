@@ -2,7 +2,7 @@
 
 projectDir='/Users/jeremyfirst/GMX_Helix_oplsaa'
 #rcFile='poster.rc'
-rcFile='paper.rc'
+rcFile='presentation.rc'
 inFile='dssp/helen.nrt'
 saveDir='figures'
 outname='%s/combined_helicity.pdf'%saveDir
@@ -17,6 +17,11 @@ import glob
 import os
 import sys
 from matplotlib import rc_file
+import matplotlib as mpl
+
+rc_file('rc_files/%s'%rcFile) 
+
+mpl.rcParams['figure.figsize'] = 5,3.8
 
 def Usage():
     print "Usage: %s <binSize=10>"%(sys.argv[0])
@@ -46,9 +51,13 @@ xmax=50
 for row,solvent in enumerate(['water','tert','sam']): 
     for col,state in enumerate(['folded','unfolded']) : 
         indFig = plt.figure() 
-        indAx = indFig.add_axes([0.1, 0.1, 0.7, 0.8])
-        indFig.text(0.5,0.05, "Time (ns)", ha='center', va='center') 
+        #indAx = indFig.add_axes([0.1, 0.1, 0.7, 0.8])
+        indFig.text(0.5,0.03, "Time (ns)", ha='center', va='center') 
         indFig.text(0.05,0.5, r"Helical fraction",ha='center',va='center',rotation='vertical') 
+        indAx = indFig.add_subplot(111) 
+        indFig.subplots_adjust(left=0.15, bottom=0.15,right=0.95,top=0.9)
+        #indAx.set_xlabel("Time (ns)", ha='center', va='center') 
+        #indAx.set_ylabel(r"Helical fraction",ha='center',va='center',rotation='vertical') 
         ax = axarr[row,col]
         datafile = '%s/%s/%s'%(solvent,state,inFile) 
         try : 
@@ -104,8 +113,12 @@ for row,solvent in enumerate(['water','tert','sam']):
         indAx.set_ylim(0,1)
         indAx.set_title("%s %s"%(state,solvent)) 
     
-        indFig.legend( [blue,green,red],[r"$\alpha$-helix",r"$3_{10}$-helix",r"unfolded"], 
-            loc = 'center', bbox_to_anchor=(0.90, 0.5),
+        if state == 'unfolded' : 
+#            indFig.legend( [blue,green,red],[r"$\alpha$-helix",r"$3_{10}$-helix",r"unfolded"], 
+#            loc = 'center', bbox_to_anchor=(0.90, 0.5),
+#            fontsize='medium') 
+            indAx.legend( [blue,green,red],[r"$\alpha$-helix",r"$3_{10}$-helix",r"unfolded"], 
+            loc = 4,
             fontsize='medium') 
         indFig.savefig("%s/helicity_%s_%s.pdf"%(saveDir,state,solvent), format='pdf')
         plt.close(indFig) 
