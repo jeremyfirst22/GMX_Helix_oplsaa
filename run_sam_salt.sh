@@ -374,7 +374,7 @@ for i in range(numMols) :
         echo "[ position_restraints ]" > posre_SUL.itp 
         echo ";; Pin sulfur atoms to spacing found on SAM" >> posre_SUL.itp 
         for atom in `grep LIG boxed.gro | grep S1 | awk '{print $3}'` ; do 
-            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 0 0 $sulRest >> posre_SUL.itp 
+            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 $sulRest $sulRest $sulRest >> posre_SUL.itp 
         done 
 
         zshift=`grep LIG boxed.gro | grep " H22 " | awk '{print $6}' | sort -n | uniq | head -n1`
