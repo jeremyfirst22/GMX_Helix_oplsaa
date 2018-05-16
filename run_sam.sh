@@ -381,9 +381,9 @@ for i in range(numMols) :
         yshift=`grep LIG boxed.gro | grep " H22 " | awk '{print $5}' | sort -n | uniq | head -n1`
         xshift=`grep LIG boxed.gro | grep " H22 " | awk '{print $4}' | sort -n | uniq | head -n1`
     
-        zshift=`echo "-$zshift " | bc -l | awk '{printf "%f", $0}'`
-        yshift=`echo "-$yshift " | bc -l | awk '{printf "%f", $0}'`
-        xshift=`echo "-$xshift " | bc -l | awk '{printf "%f", $0}'`
+        zshift=`echo "-1 * $zshift " | bc -l | awk '{printf "%f", $0}'`
+        yshift=`echo "-1 * $yshift " | bc -l | awk '{printf "%f", $0}'`
+        xshift=`echo "-1 * $xshift " | bc -l | awk '{printf "%f", $0}'`
 
         gmx editconf -f boxed.gro \
             -translate $xshift $yshift $zshift \
