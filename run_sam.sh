@@ -167,7 +167,11 @@ analysis(){
 }
 
 checkInput(){
-    SOL=sam_$saltConcentration
+    if [ $saltConcentration -eq 0 ] ; then 
+        SOL=sam
+    else 
+        SOL=sam_$saltConcentration
+    fi 
     MOLEC=folded_$SOL
     logFile=$TOP/$SOL/$fold/$fold.log
     errFile=$TOP/$SOL/$fold/$fold.err
