@@ -5,6 +5,7 @@ TOP=${PWD}
 MDP=$TOP/mdp_files
 FF=$TOP/GMXFF
 forceField=oplsaa
+saltConcentration=0
 numMols=14
 decanethiolFile=$TOP/StartingStructures/decanethiol.pdb 
 spacing=0.497 ##nm 
@@ -13,8 +14,6 @@ glyRest=1000   #kJ/mol/nm
 sulRest=200000 #kJ/mol/nm
 fileName=$TOP/StartingStructures/folded.pdb
 totSimTime=50
-SOL=sam
-MOLEC=folded_$SOL
 zBuff=0.5 #nm. This is the spacing of the SAM layer off the z intercept. Must not be zero, 
           ##    or the SAM splits during NPT box growth. 
 
@@ -35,6 +34,7 @@ HELP(){
     echo "  -c   Starting structure  (folded) PDB file: Default = StartingStructures/folded.pdb"
     echo "  -t   Maximum simulation time (ns) : Default = 50 "
     echo "  -a   Perform analyis on trajectory : Default = no"
+    echo "  -s   Salt conentration (mM) : Default = 0 (neutralizing)" 
     echo "  -n   Number of decanethiol molecules in each direction of the layer : Default = 14" 
     echo "  -d   Decanethiol structure PDB file : Default = StartingStructures/decanethiol.pdb" 
     echo "  -D   Distance (nm) between each decanethiol molecule : Default = 0.497" 
@@ -55,7 +55,7 @@ HELP(){
     exit
 }
 
-while getopts :f:c:t:an:d:D:g:r:R:z:m:p:n:vh opt; do 
+while getopts :f:c:t:as:n:d:D:g:r:R:z:m:p:n:vh opt; do 
    case $opt in 
       f) 
         fold=$OPTARG
@@ -68,6 +68,9 @@ while getopts :f:c:t:an:d:D:g:r:R:z:m:p:n:vh opt; do
         ;; 
       a) 
         analysis=true
+        ;; 
+      s) 
+        saltConcentration=$OPTARG
         ;; 
       d) 
         decanethiolFile=${TOP}/$OPTARG
@@ -114,8 +117,6 @@ while getopts :f:c:t:an:d:D:g:r:R:z:m:p:n:vh opt; do
    done 
 
 main(){
-    logFile=$TOP/$SOL/$fold/$fold.log
-    errFile=$TOP/$SOL/$fold/$fold.err
     checkInput
     printf "\n\t\t*** Program Beginning $SOL_$fold $totSimTime (ns)***\n\n" 
     if [ ! -d $SOL ] ; then mkdir $SOL ; fi 
@@ -166,10 +167,17 @@ analysis(){
 }
 
 checkInput(){
+    SOL=sam_$saltConcentration
+    MOLEC=folded_$SOL
+    logFile=$TOP/$SOL/$fold/$fold.log
+    errFile=$TOP/$SOL/$fold/$fold.err
     if $verbose ; then 
+        echo "MOLEC : $MOLEC"
+        echo "SOL : $SOL"
         echo "Folded state : $fold" 
         echo "Input file name: $fileName"
         echo "Max simultaiton time: $totSimTime"
+        echo "Salt concentration : $saltConcentration"
         echo "Number of decanethiols: $numMols" 
         echo "Decanethiol starting structure : $decanethiolFile" 
         echo "Distance between each decanethiol : $spacing"
@@ -243,6 +251,10 @@ checkInput(){
         fi  
     if [ ! -d $MDP ] ; then 
         echo ; echo "ERROR: mdp files directory not found" 
+        exit 
+        fi 
+    if [[ $saltConcentration < 0 ]] ; then 
+        echo "ERROR: Negative salt conentration given" 
         exit 
         fi 
     check $MDP $fileName $FF $FF/$forceField.ff 
@@ -362,7 +374,7 @@ for i in range(numMols) :
         echo "[ position_restraints ]" > posre_SUL.itp 
         echo ";; Pin sulfur atoms to spacing found on SAM" >> posre_SUL.itp 
         for atom in `grep LIG boxed.gro | grep S1 | awk '{print $3}'` ; do 
-            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 0 0 $sulRest >> posre_SUL.itp 
+            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 $sulRest $sulRest $sulRest >> posre_SUL.itp 
         done 
 
         zshift=`grep LIG boxed.gro | grep " H22 " | awk '{print $6}' | sort -n | uniq | head -n1`
@@ -520,8 +532,12 @@ solvate(){
             -o genion.tpr >> $logFile 2>> $errFile 
         check genion.tpr
         
+        protCharge=$(grep qtot $MOLEC.top | tail -n -1 | awk '{print $11}') 
+        numNa=$(python -c "print int(round($saltConcentration * 6.022*10**-4 * $xdim*$ydim*$zdim))") 
+        numCl=$(python -c "print $protCharge + $numNa") ##neutral box required
         echo 'Water' | gmx genion -s genion.tpr \
-            -neutral \
+            -nn $numCl \
+            -np $numNa \
             -nname 'CL' \
             -pname 'NA' \
             -o neutral.gro >> $logFile 2>> $errFile 
@@ -650,7 +666,7 @@ build_system(){
             -o bottom_boxed.gro >> $logFile 2>> $errFile 
         check bottom_boxed.gro
     
-        zdim=`echo "$zdim + $zshift" | bc -l | awk '{printf "%f", $0}'`
+        zdim=`echo "$zdim + $zshift + 0.05" | bc -l | awk '{printf "%f", $0}'`
 
         gmx editconf -f solvent_npt.gro \
             -box $xdim $ydim $zdim \
@@ -658,7 +674,8 @@ build_system(){
         check new_box.gro 
 
         zshift=`cat new_box.gro | grep SOL | grep OW | awk '{print $6}' | sort -n | uniq | tail -n1`
-        zshift=`echo "$zdim - $zshift + $zBuff " | bc -l | awk '{printf "%f", $0}'`
+        zshift=`echo "$zdim - $zshift + $zBuff + 0.05" | bc -l | awk '{printf "%f", $0}'` ##1 angstrom buffer space to 
+                                                                                         ##  keep atoms from being on top of each other
     
         gmx editconf -f new_box.gro \
             -translate 0 0 $zshift \
@@ -702,7 +719,7 @@ build_system(){
         echo "[ position_restraints ]" > posre_SUL.itp 
         echo ";; Pin sulfur atoms to spacing found on SAM" >> posre_SUL.itp 
         for atom in `grep LIG system.gro | grep S1 | awk '{print $3}'` ; do 
-            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 0 0 $sulRest >> posre_SUL.itp 
+            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 $sulRest $sulRest $sulRest >> posre_SUL.itp 
         done 
 
         ## We need to rebuild posre.itp. pdb2gmx assigns all heavy atoms to restraints. 
@@ -998,12 +1015,18 @@ production(){
                     fi 
                 check $simTime.tpr 
 
+		##Added -mt 128 when swithed to stampede2. Too many cores on stampede2 for box size. 
+		##Added -pin on. Get 1.7 hr/ns with this. 
                 if [ -f $MOLEC.cpt ] ; then 
                     gmx mdrun -deffnm $MOLEC \
                         -s $simTime.tpr \
+            			-nt 128 \
+			            -pin on \
                         -cpi $MOLEC.cpt >> $logFile 2>> $errFile  
                 else 
                     gmx mdrun -deffnm $MOLEC \
+			            -nt 128 \
+			            -pin on \
                         -s $simTime.tpr >> $logFile 2>> $errFile
                     fi 
                 check $MOLEC.gro 
