@@ -1020,13 +1020,13 @@ production(){
                 if [ -f $MOLEC.cpt ] ; then 
                     gmx mdrun -deffnm $MOLEC \
                         -s $simTime.tpr \
-			-nt 128 \
-			-pin on \
+            			-nt 128 \
+			            -pin on \
                         -cpi $MOLEC.cpt >> $logFile 2>> $errFile  
                 else 
                     gmx mdrun -deffnm $MOLEC \
-			-nt 128 \
-			-pin on \
+			            -nt 128 \
+			            -pin on \
                         -s $simTime.tpr >> $logFile 2>> $errFile
                     fi 
                 check $MOLEC.gro 

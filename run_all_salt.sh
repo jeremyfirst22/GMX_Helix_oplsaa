@@ -163,8 +163,12 @@ if $folded ; then
                 echo >> submit_fol_${sol}
                 echo "#SBATCH -J fol_${sol} " >> submit_fol_${sol}
                 echo "#SBATCH -o fol_${sol}.o%j" >> submit_fol_${sol}
+<<<<<<< HEAD
                 echo "#SBATCH -N 1" >> submit_fol_${sol}
                 echo "#SBATCH -n 128" >> submit_fol_${sol}
+=======
+                echo "#SBATCH -n 16 " >> submit_fol_${sol}
+>>>>>>> 4763693745f661f009315b6898f238c551782a76
                 echo "#SBATCH -p normal " >> submit_fol_${sol}
                 echo "#SBATCH -t 48:00:00" >> submit_fol_${sol}
                 echo "#SBATCH -A Ras" >> submit_fol_${sol}
@@ -172,9 +176,15 @@ if $folded ; then
                 echo "#SBATCH --mail-type=all" >> submit_fol_${sol}
                 
                 echo >> submit_fol_${sol}
+<<<<<<< HEAD
 #                echo "module load boost " >> submit_fol_${sol}
 #                echo "module load cxx11 " >> submit_fol_${sol}
                 echo "module load gromacs/5.1.2 " >> submit_fol_${sol} 
+=======
+                echo "module load boost " >> submit_fol_${sol}
+                echo "module load cxx11 " >> submit_fol_${sol}
+                echo "module load gromacs " >> submit_fol_${sol} 
+>>>>>>> 4763693745f661f009315b6898f238c551782a76
                                                                                
                 echo >> submit_fol_${sol}
                 echo "bash run_${solvent}_salt.sh -f folded -s $salt -t $simTime " >> submit_fol_${sol}
@@ -208,8 +218,12 @@ if $unfolded ; then
                 echo >> submit_unf_${sol}
                 echo "#SBATCH -J unf_${sol} " >> submit_unf_${sol}
                 echo "#SBATCH -o unf_${sol}.o%j" >> submit_unf_${sol}
+<<<<<<< HEAD
                 echo "#SBATCH -N 1" >> submit_unf_${sol}
                 echo "#SBATCH -n 128" >> submit_unf_${sol}
+=======
+                echo "#SBATCH -n 16 " >> submit_unf_${sol}
+>>>>>>> 4763693745f661f009315b6898f238c551782a76
                 echo "#SBATCH -p normal " >> submit_unf_${sol}
                 echo "#SBATCH -t 48:00:00" >> submit_unf_${sol}
                 echo "#SBATCH -A Ras" >> submit_unf_${sol}
@@ -217,9 +231,15 @@ if $unfolded ; then
                 echo "#SBATCH --mail-type=all" >> submit_unf_${sol}
                 
                 echo >> submit_unf_${sol}
+<<<<<<< HEAD
 #                echo "module load boost " >> submit_unf_${sol}
 #                echo "module load cxx11 " >> submit_unf_${sol}
                 echo "module load gromacs/5.1.2" >> submit_unf_${sol} 
+=======
+                echo "module load boost " >> submit_unf_${sol}
+                echo "module load cxx11 " >> submit_unf_${sol}
+                echo "module load gromacs " >> submit_unf_${sol} 
+>>>>>>> 4763693745f661f009315b6898f238c551782a76
                                                                                
                 echo >> submit_unf_${sol}
                 echo "bash run_${solvent}_salt.sh -f unfolded -s $salt -t $simTime" >> submit_unf_${sol}
