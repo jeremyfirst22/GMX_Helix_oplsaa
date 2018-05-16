@@ -8,9 +8,6 @@ forceField=oplsaa
 dim=7.600
 fileName=$TOP/StartingStructures/folded.pdb
 totSimTime=50
-SOL=water
-MOLEC=folded_$SOL
-
 verbose=false
 analysis=false
 
@@ -82,8 +79,6 @@ while getopts :f:c:t:d:am:p:n:vh opt; do
    done 
 
 main(){
-    logFile=$TOP/$SOL/$fold/$fold.log
-    errFile=$TOP/$SOL/$fold/$fold.err
     checkInput
     printf "\n\t\t*** Program Beginning $SOL_$fold $totSimTime (ns)***\n\n" 
     if [ ! -d $SOL ] ; then mkdir $SOL ; fi 
@@ -128,7 +123,13 @@ analysis(){
 }
 
 checkInput(){
+    SOL=water
+    MOLEC=folded_$SOL
+    logFile=$TOP/$SOL/$fold/$fold.log
+    errFile=$TOP/$SOL/$fold/$fold.err
     if $verbose ; then 
+        echo "MOLEC : $MOLEC" 
+        echo "SOL : $SOL" 
         echo "Folded state : $fold" 
         echo "Input file name: $fileName"
         echo "Max simultaiton time: $totSimTime"
@@ -525,12 +526,18 @@ production(){
                     fi 
                 check $simTime.tpr 
 
+                ##Added -mt 128 when swithed to stampede2. Too many cores on stampede2 for box size. 
+                ##Added -pin on. Get 1.7 hr/ns with this.
                 if [ -f $MOLEC.cpt ] ; then 
                     gmx mdrun -deffnm $MOLEC \
                         -s $simTime.tpr \
+                        -nt 128 \
+                        -pin on \
                         -cpi $MOLEC.cpt >> $logFile 2>> $errFile  
                 else 
                     gmx mdrun -deffnm $MOLEC \
+                        -nt 128 \
+                        -pin on \
                         -s $simTime.tpr >> $logFile 2>> $errFile
                     fi 
                 check $MOLEC.gro 
