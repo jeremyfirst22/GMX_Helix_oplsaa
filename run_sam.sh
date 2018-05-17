@@ -1037,18 +1037,12 @@ production(){
                     fi 
                 check $simTime.tpr 
 
-		##Added -mt 128 when swithed to stampede2. Too many cores on stampede2 for box size. 
-		##Added -pin on. Get 1.7 hr/ns with this. 
                 if [ -f $MOLEC.cpt ] ; then 
-                    gmx mdrun -deffnm $MOLEC \
+                    ibrun mdrun_mpi -deffnm $MOLEC \
                         -s $simTime.tpr \
-            			-nt 128 \
-			            -pin on \
                         -cpi $MOLEC.cpt >> $logFile 2>> $errFile  
                 else 
-                    gmx mdrun -deffnm $MOLEC \
-			            -nt 128 \
-			            -pin on \
+                    ibrun mdrun_mpi -deffnm $MOLEC \
                         -s $simTime.tpr >> $logFile 2>> $errFile
                     fi 
                 check $MOLEC.gro 

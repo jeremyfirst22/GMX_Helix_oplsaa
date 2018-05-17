@@ -535,7 +535,6 @@ production(){
                     fi 
                 check $simTime.tpr 
 
-                ##Should get < 0.8 hr/ns 
                 if [ -f $MOLEC.cpt ] ; then 
                     ibrun mdrun_mpi -deffnm $MOLEC \
                         -s $simTime.tpr \
