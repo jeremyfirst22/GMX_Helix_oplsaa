@@ -315,9 +315,18 @@ solvent_steep(){
         cp Solvate/posre_*.itp Solvent_steep/. 
         cd Solvent_steep
 
-        gmx grompp -f $MDP/solvent_steep.mdp \
+        gmx grompp -f $MDP/solvent_steep_easy.mdp \
             -p neutral.top \
             -c neutral.gro \
+            -o solvent_steep_easy.tpr >> $logFile 2>> $errFile 
+        check solvent_steep_easy.tpr 
+
+        gmx mdrun -deffnm solvent_steep_easy -nt 1 >> $logFile 2>> $errFile 
+        check solvent_steep_easy.gro 
+        
+        gmx grompp -f $MDP/solvent_steep.mdp \
+            -p neutral.top \
+            -c solvent_steep_easy.gro \
             -o solvent_steep.tpr >> $logFile 2>> $errFile 
         check solvent_steep.tpr 
 
@@ -526,18 +535,13 @@ production(){
                     fi 
                 check $simTime.tpr 
 
-                ##Added -mt 128 when swithed to stampede2. Too many cores on stampede2 for box size. 
-                ##Added -pin on. Get 1.7 hr/ns with this.
+                ##Should get < 0.8 hr/ns 
                 if [ -f $MOLEC.cpt ] ; then 
-                    gmx mdrun -deffnm $MOLEC \
+                    ibrun mdrun_mpi -deffnm $MOLEC \
                         -s $simTime.tpr \
-                        -nt 128 \
-                        -pin on \
                         -cpi $MOLEC.cpt >> $logFile 2>> $errFile  
                 else 
-                    gmx mdrun -deffnm $MOLEC \
-                        -nt 128 \
-                        -pin on \
+                    ibrun mdrun_mpi -deffnm $MOLEC \
                         -s $simTime.tpr >> $logFile 2>> $errFile
                     fi 
                 check $MOLEC.gro 

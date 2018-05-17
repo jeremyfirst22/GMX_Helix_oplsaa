@@ -578,9 +578,18 @@ solvent_steep(){
         cp Solvate/posre_*.itp Solvent_steep/. 
         cd Solvent_steep
 
-        gmx grompp -f $MDP/solvent_steep.mdp \
+        gmx grompp -f $MDP/solvent_steep_easy.mdp \
             -p neutral.top \
             -c neutral.gro \
+            -o solvent_steep_easy.tpr >> $logFile 2>> $errFile 
+        check solvent_steep_easy.tpr 
+
+        gmx mdrun -deffnm solvent_steep_easy -nt 1 >> $logFile 2>> $errFile 
+        check solvent_steep_easy.gro 
+
+        gmx grompp -f $MDP/solvent_steep.mdp \
+            -p neutral.top \
+            -c solvent_steep_easy.gro \
             -o solvent_steep.tpr >> $logFile 2>> $errFile 
         check solvent_steep.tpr 
 
@@ -791,9 +800,18 @@ system_steep(){
         cp Build_system/*.itp System_steep/. 
         cd System_steep
 
-        gmx grompp -f $MDP/system_steep.mdp \
+        gmx grompp -f $MDP/system_steep_easy.mdp \
             -p system.top \
             -c system.gro \
+            -o system_steep_easy.tpr >> $logFile 2>> $errFile 
+        check system_steep_easy.tpr 
+
+        gmx mdrun -deffnm system_steep_easy -nt 1 >> $logFile 2>> $errFile 
+        check system_steep_easy.gro 
+
+        gmx grompp -f $MDP/system_steep.mdp \
+            -p system.top \
+            -c system_steep_easy.gro \
             -o system_steep.tpr >> $logFile 2>> $errFile 
         check system_steep.tpr 
 
@@ -1001,8 +1019,8 @@ production(){
         if [ ! -f $MOLEC.tpr ] ; then 
             gmx grompp -f $MDP/production_sam.mdp \
                 -p system.top \
-            -c $startStructure \
-            -o $MOLEC.tpr >> $logFile 2>> $errFile 
+                -c $startStructure \
+                -o $MOLEC.tpr >> $logFile 2>> $errFile 
         fi 
         check $MOLEC.tpr 
 

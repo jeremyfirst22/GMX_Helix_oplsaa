@@ -368,9 +368,18 @@ binary_steep(){
         cp Prepare_box/mixture.top Binary_steep/. 
         cd Binary_steep
 
-        gmx grompp -f $MDP/binary_steep.mdp \
+        gmx grompp -f $MDP/binary_steep_easy.mdp \
             -p mixture.top \
             -c mixture.gro \
+            -o binary_steep_easy.tpr >> $logFile 2>> $errFile  
+        check binary_steep_easy.tpr 
+
+        gmx mdrun -deffnm binary_steep_easy -nt 1 >> $logFile 2>> $errFile 
+        check binary_steep_easy.gro 
+
+        gmx grompp -f $MDP/binary_steep.mdp \
+            -p mixture.top \
+            -c binary_steep_easy.gro \
             -o binary_steep.tpr >> $logFile 2>> $errFile  
         check binary_steep.tpr 
 
@@ -525,9 +534,18 @@ solvent_steep(){
         cp Solvate/posre_*.itp Solvent_steep/. 
         cd Solvent_steep
 
-        gmx grompp -f $MDP/solvent_steep.mdp \
+        gmx grompp -f $MDP/solvent_steep_easy.mdp \
             -p neutral.top \
             -c neutral.gro \
+            -o solvent_steep_easy.tpr >> $logFile 2>> $errFile 
+        check solvent_steep_easy.tpr 
+
+        gmx mdrun -deffnm solvent_steep_easy -nt 1 >> $logFile 2>> $errFile 
+        check solvent_steep_easy.gro 
+
+        gmx grompp -f $MDP/solvent_steep.mdp \
+            -p neutral.top \
+            -c solvent_steep_easy.gro \
             -o solvent_steep.tpr >> $logFile 2>> $errFile 
         check solvent_steep.tpr 
 
