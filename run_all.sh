@@ -96,16 +96,14 @@ if $prep ; then
             echo >> submit_prep_${sol}
             echo "#SBATCH -J prep_${sol} " >> submit_prep_${sol}
             echo "#SBATCH -o prep_${sol}.o%j" >> submit_prep_${sol}
-            echo "#SBATCH -n 16 " >> submit_prep_${sol}
-            echo "#SBATCH -p normal " >> submit_prep_${sol}
-            echo "#SBATCH -t 03:00:00" >> submit_prep_${sol}
+            echo "#SBATCH -n 48 " >> submit_prep_${sol}
+            echo "#SBATCH -p skx-normal " >> submit_prep_${sol}
+            echo "#SBATCH -t 05:00:00" >> submit_prep_${sol}
             echo "#SBATCH -A Ras" >> submit_prep_${sol}
             echo "#SBATCH --mail-user=jeremy_first@utexas.edu" >> submit_prep_${sol}
             echo "#SBATCH --mail-type=all" >> submit_prep_${sol}
             
             echo >> submit_prep_${sol}
-            echo "module load boost " >> submit_prep_${sol}
-            echo "module load cxx11 " >> submit_prep_${sol}
             echo "module load gromacs " >> submit_prep_${sol} 
                                                                            
             echo >> submit_prep_${sol}
@@ -137,16 +135,14 @@ if $folded ; then
             echo >> submit_fol_${sol}
             echo "#SBATCH -J fol_${sol} " >> submit_fol_${sol}
             echo "#SBATCH -o fol_${sol}.o%j" >> submit_fol_${sol}
-            echo "#SBATCH -n 16 " >> submit_fol_${sol}
-            echo "#SBATCH -p normal " >> submit_fol_${sol}
+            echo "#SBATCH -n 48 " >> submit_fol_${sol}
+            echo "#SBATCH -p skx-normal " >> submit_fol_${sol}
             echo "#SBATCH -t 48:00:00" >> submit_fol_${sol}
             echo "#SBATCH -A Ras" >> submit_fol_${sol}
             echo "#SBATCH --mail-user=jeremy_first@utexas.edu" >> submit_fol_${sol}
             echo "#SBATCH --mail-type=all" >> submit_fol_${sol}
             
             echo >> submit_fol_${sol}
-            echo "module load boost " >> submit_fol_${sol}
-            echo "module load cxx11 " >> submit_fol_${sol}
             echo "module load gromacs " >> submit_fol_${sol} 
                                                                            
             echo >> submit_fol_${sol}
@@ -178,16 +174,14 @@ if $unfolded ; then
             echo >> submit_unf_${sol}
             echo "#SBATCH -J unf_${sol} " >> submit_unf_${sol}
             echo "#SBATCH -o unf_${sol}.o%j" >> submit_unf_${sol}
-            echo "#SBATCH -n 16 " >> submit_unf_${sol}
-            echo "#SBATCH -p normal " >> submit_unf_${sol}
+            echo "#SBATCH -n 48 " >> submit_unf_${sol}
+            echo "#SBATCH -p skx-normal " >> submit_unf_${sol}
             echo "#SBATCH -t 48:00:00" >> submit_unf_${sol}
             echo "#SBATCH -A Ras" >> submit_unf_${sol}
             echo "#SBATCH --mail-user=jeremy_first@utexas.edu" >> submit_unf_${sol}
             echo "#SBATCH --mail-type=all" >> submit_unf_${sol}
             
             echo >> submit_unf_${sol}
-            echo "module load boost " >> submit_unf_${sol}
-            echo "module load cxx11 " >> submit_unf_${sol}
             echo "module load gromacs " >> submit_unf_${sol} 
                                                                            
             echo >> submit_unf_${sol}
