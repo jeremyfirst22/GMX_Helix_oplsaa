@@ -96,6 +96,7 @@ if $prep ; then
             echo >> submit_prep_${sol}
             echo "#SBATCH -J prep_${sol} " >> submit_prep_${sol}
             echo "#SBATCH -o prep_${sol}.o%j" >> submit_prep_${sol}
+	    echo "#SBATCH -N 1" >> submit_prep_${sol}
             echo "#SBATCH -n 48 " >> submit_prep_${sol}
             echo "#SBATCH -p skx-normal " >> submit_prep_${sol}
             echo "#SBATCH -t 05:00:00" >> submit_prep_${sol}
@@ -135,6 +136,7 @@ if $folded ; then
             echo >> submit_fol_${sol}
             echo "#SBATCH -J fol_${sol} " >> submit_fol_${sol}
             echo "#SBATCH -o fol_${sol}.o%j" >> submit_fol_${sol}
+	    echo "#SBATCH -N 1" >> submit_prep_${sol}
             echo "#SBATCH -n 48 " >> submit_fol_${sol}
             echo "#SBATCH -p skx-normal " >> submit_fol_${sol}
             echo "#SBATCH -t 48:00:00" >> submit_fol_${sol}
@@ -174,6 +176,7 @@ if $unfolded ; then
             echo >> submit_unf_${sol}
             echo "#SBATCH -J unf_${sol} " >> submit_unf_${sol}
             echo "#SBATCH -o unf_${sol}.o%j" >> submit_unf_${sol}
+	    echo "#SBATCH -N 1" >> submit_prep_${sol}
             echo "#SBATCH -n 48 " >> submit_unf_${sol}
             echo "#SBATCH -p skx-normal " >> submit_unf_${sol}
             echo "#SBATCH -t 48:00:00" >> submit_unf_${sol}
