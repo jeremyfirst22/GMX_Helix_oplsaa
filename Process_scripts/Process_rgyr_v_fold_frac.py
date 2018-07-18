@@ -35,8 +35,8 @@ if not os.path.isdir(saveDir) :
 
 fig, axarr = plt.subplots(figRows, figCols, sharex='col',sharey='row') 
 fig.subplots_adjust(wspace=0.1,hspace=0.25,left=0.1,bottom=0.1,right=0.8,top=0.9) 
-fig.text(0.5,0.05, xLabel, ha='center', va='center') 
-fig.text(0.05,0.5, yLabel, ha='center', va='center',rotation='vertical') 
+fig.text(0.5,0.03, xLabel, ha='center', va='center') 
+fig.text(0.03,0.5, yLabel, ha='center', va='center',rotation='vertical') 
 
 #legend
 
@@ -54,15 +54,19 @@ for row, solvent in enumerate(['water','tert','sam']) :
         datafile2= "%s/%s/%s"%(solvent,state,inFile2) 
         
         try : 
-            data = np.genfromtxt(datafile,skip_header=25) 
+            headlines = 0 
+            with open(datafile) as f : 
+                lines = f.readlines() 
+                for line in lines : 
+                    if line.startswith('#') or line.startswith('@') : 
+                        headlines += 1 
+                    else : 
+                        break 
+            data = np.genfromtxt(datafile,skip_header=headlines) 
             data2 = np.genfromtxt(datafile2) 
         except IOError : 
             print "No file found for %s %s"%(state,solvent) 
             break  
-        except ValueError : 
-            print "Tyring again with one less line..." 
-            data = np.genfromtxt(datafile,skip_header=25,skip_footer=1) 
-            data2 = np.genfromtxt(datafile2,skip_footer=1)  
 
         x = data[:-1,1] 
         y = (data2[:-1,1] + data2[:-1,2]) / 18

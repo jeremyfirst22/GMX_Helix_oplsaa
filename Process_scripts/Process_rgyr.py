@@ -27,7 +27,14 @@ for row,solvent in enumerate(['water','tert','sam']):
 
         datafile = '%s/%s/%s'%(solvent,state,inFile) 
         try : 
-            data = np.genfromtxt(datafile,skip_header=25) 
+            headlines = 0
+            with open(datafile) as f: 
+                for line in f.readlines() : 
+                    if line.startswith('#') or line.startswith('@') : 
+                        headlines += 1 
+                    else : 
+                        break 
+            data = np.genfromtxt(datafile,skip_header=headlines) 
         except IOError : 
             print "No file found for %s/%s"%(solvent,state) 
             continue 

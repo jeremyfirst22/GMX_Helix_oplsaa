@@ -54,15 +54,28 @@ for row, solvent in enumerate(['water','tert','sam']) :
         datafile2= "%s/%s/%s"%(solvent,state,inFile2) 
         
         try : 
-            data = np.genfromtxt(datafile,skip_header=25) 
-            data2 = np.genfromtxt(datafile2,skip_header=16) 
+            headlines = 0 
+            with open(datafile) as f : 
+                lines = f.readlines() 
+                for line in lines : 
+                    if line.startswith('#') or line.startswith('@') : 
+                        headlines += 1 
+                    else : 
+                        break 
+            data = np.genfromtxt(datafile,skip_header=headlines) 
+
+            headlines = 0 
+            with open(datafile2) as f : 
+                lines = f.readlines() 
+                for line in lines : 
+                    if line.startswith('#') or line.startswith('@') : 
+                        headlines += 1 
+                    else : 
+                        break 
+            data2 = np.genfromtxt(datafile2,skip_header=headlines) 
         except IOError : 
             print "No file found for %s %s"%(state,solvent) 
             break  
-        except ValueError : 
-            print "Tyring again with one less line..." 
-            data = np.genfromtxt(datafile,skip_header=25,skip_footer=1) 
-            data2 = np.genfromtxt(datafile2,skip_footer=1)  
 
         x = data[:-1,1] 
         y = data2[:-1,1]

@@ -27,13 +27,19 @@ for solvent in ['water','tert','sam'] :
         datafile = '%s/%s/minimage/mindist.xvg'%(solvent,state) 
 
         try : 
-            data = np.genfromtxt(datafile,skip_header=27) 
+            headlines = 0 
+            with open(datafile) as f : 
+                lines = f.readlines() 
+                for line in lines : 
+                    if line.startswith('#') or line.startswith('@') : 
+                        headlines += 1 
+                    else : 
+                        break 
+            
+            data = np.genfromtxt(datafile,skip_header=headlines) 
         except IOError : 
             print "No file found for %s %s"%(state,solvent)  
             continue
-        except ValueError :
-            print "Data import failed with ValueError. Trying without last line"
-            data = np.genfromtxt(datafile,skip_header=27,skip_footer=1) 
         if state == 'folded' : 
             c='b' 
         else :
