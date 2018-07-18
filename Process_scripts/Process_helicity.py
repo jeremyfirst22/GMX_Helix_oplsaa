@@ -36,10 +36,10 @@ except :
 if not os.path.isdir(saveDir) : 
     os.mkdir(saveDir) 
 
-fig, axarr = plt.subplots(figRows, figCols, sharex='col',sharey='row') 
+fig, axarr = plt.subplots(figRows, figCols, sharex='none',sharey='row', figsize=(10.5,6.5)) 
 fig.subplots_adjust(wspace=0.1) 
-fig.subplots_adjust(hspace=0.25) 
-fig.text(0.5,0.05, "Time (ns)", ha='center', va='center') 
+fig.subplots_adjust(hspace=0.40) 
+fig.text(0.5,0.04, "Time (ns)", ha='center', va='center') 
 fig.text(0.05,0.5, r"Helical fraction",ha='center',va='center',rotation='vertical') 
 fig.subplots_adjust(left=0.1, bottom=0.1,right=0.80,top=0.9)
 
