@@ -13,8 +13,12 @@ import sys
 from matplotlib import rc_file
 import matplotlib.lines as mlines 
 
+rcFile = 'rc_files/presentation.rc' 
+
 def Usage():
     print "Usage: %s <Data directory>"%(sys.argv[0])
+
+rc_file(rcFile) 
 
 if not os.path.isdir(saveDir) : 
     os.mkdir(saveDir) 
@@ -22,22 +26,33 @@ if not os.path.isdir(saveDir) :
 curdir = os.path.abspath(os.getcwd())
 
 sol2inFileList={
-'tert':['tba_tba.xvg','tba_wat.xvg','wat_wat.xvg','leu_tba.xvg','leu_wat.xvg','lys_tba.xvg','lys_wat.xvg'],
-'water':['wat_wat.xvg','leu_wat.xvg','lys_wat.xvg'],
-'sam':['wat_wat.xvg','leu_wat.xvg','lys_wat.xvg','sam_leu.xvg','sam_lys.xvg']
+'tert':['leu_tba.xvg','leu_wat.xvg','lys_tba.xvg','lys_wat.xvg'],
+'water':['leu_wat.xvg','lys_wat.xvg'],
+'sam':['leu_wat.xvg','lys_wat.xvg','sam_leu.xvg','sam_lys.xvg']
 } 
 
 for sol in 'tert', 'water', 'sam' : 
     for inFile in sol2inFileList[sol] : 
         title=os.path.basename(inFile).split('.')[0]
         
-        outname = "%s/rdf_%s_%s.pdf"%(saveDir,sol,title)
+        outname = "%s/rdf_%s_%s.png"%(saveDir,sol,title)
         outname = os.path.join(curdir,outname)
         
         for state in 'folded', 'unfolded' : 
-            datafile = "%s,%s/rdf/%s"%(sol,state,inFile) 
+            if state == 'folded' : 
+                color = 'b' 
+            else : 
+                color = 'g' 
+            datafile = "%s/%s/rdf/%s"%(sol,state,inFile) 
             try : 
-                data = np.genfromtxt(datafile,skip_header=16) 
+                headlines = 0 
+                with open(datafile) as f : 
+                    for line in f.readlines() : 
+                        if line.startswith('#') or line.startswith('@') : 
+                            headlines += 1
+                        else : 
+                            break 
+                data = np.genfromtxt(datafile,skip_header=headlines) 
             except IOError :
                 print "Error: %s not found."%datafile
                 break
@@ -47,7 +62,7 @@ for sol in 'tert', 'water', 'sam' :
             x = data[:,0] 
             y = data[:,1] 
         
-            plt.plot(x ,y) 
+            plt.plot(x ,y,color=color) 
         else : 
             plt.title(title) 
             plt.xlabel(r"r (nm)") 
@@ -59,7 +74,7 @@ for sol in 'tert', 'water', 'sam' :
             gre_lin = mlines.Line2D([],[],linestyle='-',color='g',label="unfolded") 
             plt.legend(handles=[gre_lin,blu_lin],loc=1,fontsize='medium') 
         
-            plt.savefig(outname, format='pdf')
+            plt.savefig(outname, format='png')
             print "Success: %s_%s plot saved to %s"%(state,sol,saveDir) 
         plt.close()
 
