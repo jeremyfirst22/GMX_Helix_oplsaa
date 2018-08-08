@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-rcFile='paper.rc'
+rcFile='presentation.rc'
 inFile ='rgyr/gyrate.xvg'
 inFile2='dssp/helen.nrt'
 saveDir='figures'
-outname='%s/combined_rgyr_v_fold_frac.pdf'%saveDir
+outname='%s/combined_rgyr_v_fold_frac.png'%saveDir
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -20,6 +20,8 @@ figRows=3
 xLabel=r"Radius of gyration (nm)"
 yLabel=r"Helical fraction"
 
+rc_file("rc_files/%s"%rcFile) 
+
 def Usage():
     print "Usage: %s <binSize>"%(sys.argv[0])
 
@@ -33,7 +35,7 @@ except :
 if not os.path.isdir(saveDir) : 
     os.mkdir(saveDir) 
 
-fig, axarr = plt.subplots(figRows, figCols, sharex='col',sharey='row') 
+fig, axarr = plt.subplots(figRows, figCols, sharex='col',sharey='row',figsize=[10.5,6.5]) 
 fig.subplots_adjust(wspace=0.1,hspace=0.25,left=0.1,bottom=0.1,right=0.8,top=0.9) 
 fig.text(0.5,0.03, xLabel, ha='center', va='center') 
 fig.text(0.03,0.5, yLabel, ha='center', va='center',rotation='vertical') 
@@ -46,7 +48,7 @@ for row, solvent in enumerate(['water','tert','sam']) :
         indAx = indFig.add_axes([0.1,0.1,0.9, 0.8]) 
         indFig.text(0.5,0.05, xLabel, ha='center', va='center') 
         indFig.text(0.05,0.5, yLabel, ha='center', va='center',rotation='vertical') 
-        outnameInd = "%s/rgyr_v_fold_frac_%s_%s.pdf"%(saveDir,solvent,state) 
+        outnameInd = "%s/rgyr_v_fold_frac_%s_%s.png"%(saveDir,solvent,state) 
 
         ax = axarr[row,col]
 
@@ -104,12 +106,12 @@ for row, solvent in enumerate(['water','tert','sam']) :
         #indAx.set_xlabel(xLabel) 
         #indAx.set_ylabel(yLabel,rotation='vertical') 
 
-        indFig.savefig(outnameInd, format='pdf')
+        indFig.savefig(outnameInd, format='png')
         plt.close(indFig)
 
 cbar_ax = fig.add_axes([0.85, 0.15, 0.03, 0.7])
 cbar = fig.colorbar(sc, cax=cbar_ax) 
 cbar.set_label('Time (ns)',rotation='vertical') 
-fig.savefig(outname, format='pdf')
+fig.savefig(outname, format='png')
 plt.close() 
 
