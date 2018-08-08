@@ -13,6 +13,7 @@ figure.subplot.left : 0.15
 figure.subplot.right: 0.95
 figure.subplot.top  : 0.90 
 figure.subplot.bottom : 0.10
+savefig.dpi     : 500
 
 
 
