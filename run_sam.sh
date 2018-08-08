@@ -159,7 +159,7 @@ analysis(){
     dssp
     rgyr
     minimage
-    #rdf
+    rdf
     nopbc
     rmsd 
     cd_spectra
@@ -1183,50 +1183,36 @@ minimage(){
 
 rdf(){
     printf "\t\tCalculating RDFs.........................." 
-    if [ ! -f rdf/lys_wat.xvg ] ; then 
+    if [ ! -f rdf/sam_wat.xvg ] ; then 
         create_dir rdf
         cd rdf
         clean 
 
-        touch empty.ndx 
-        echo "r SOL & a OW" > selection.dat 
-        echo "a CD1 or CD2 & r LEU" >> selection.dat 
-        echo "r LYS & a NZ" >> selection.dat 
-        echo "r LIG & a C10" >> selection.dat 
-        echo "q" >> selection.dat 
-
-        cat selection.dat | gmx make_ndx -f ../Production/system_nvt.gro \
-            -n empty.ndx \
-            -o index.ndx >> $logFile 2>> $errFile 
-        check index.ndx 
-
-        echo '0 0' | gmx rdf -f ../Production/$MOLEC.xtc \
+        gmx rdf -f ../Production/$MOLEC.xtc \
             -s ../Production/$MOLEC.tpr \
-            -n index.ndx \
-            -o wat_wat.xvg >> $logFile 2>> $errFile 
-        check wat_wat.xvg
-
-        echo '1 0' | gmx rdf -f ../Production/$MOLEC.xtc \
-            -s ../Production/$MOLEC.tpr \
-            -n index.ndx \
+            -ref 'name CD1 CD2 and resname LEU' \
+            -sel 'resname SOL and name OW' \
             -o leu_wat.xvg >> $logFile 2>> $errFile 
         check leu_wat.xvg 
 
-        echo '2 0' | gmx rdf -f ../Production/$MOLEC.xtc \
+        gmx rdf -f ../Production/$MOLEC.xtc \
             -s ../Production/$MOLEC.tpr \
-            -n index.ndx \
+            -ref 'name NZ and resname LYS' \
+            -sel 'resname SOL and name OW' \
             -o lys_wat.xvg >> $logFile 2>> $errFile 
         check lys_wat.xvg 
 
-        echo '3 1' | gmx rdf -f ../Production/$MOLEC.xtc \
+        gmx rdf -f ../Production/$MOLEC.xtc \
             -s ../Production/$MOLEC.tpr \
-            -n index.ndx \
+            -ref 'name CD1 CD2 and resname LEU' \
+            -sel 'name C10 and resname LIG' \
             -o sam_leu.xvg >> $logFile 2>> $errFile 
         check sam_leu.xvg 
 
-        echo '3 2' | gmx rdf -f ../Production/$MOLEC.xtc \
+        gmx rdf -f ../Production/$MOLEC.xtc \
             -s ../Production/$MOLEC.tpr \
-            -n index.ndx \
+            -ref 'name NZ and resname LYS' \
+            -sel 'name C10 and resname LIG' \
             -o sam_lys.xvg >> $logFile 2>> $errFile 
         check sam_lys.xvg 
 

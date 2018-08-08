@@ -134,7 +134,7 @@ analysis(){
     dssp
     rgyr
     minimage
-#    rdf
+    rdf
     nopbc
     rmsd
     cd_spectra
@@ -905,59 +905,33 @@ rdf(){
         cd rdf
         clean 
 
-        touch empty.ndx 
-        echo "r TBUT & a C" > selection.dat 
-        echo "r SOL & a OW" >> selection.dat 
-        echo "a CD1 or a CD2 & r LEU" >> selection.dat 
-        echo "r LYS & a NZ" >> selection.dat 
-        echo "q" >> selection.dat 
-
-        cat selection.dat | gmx make_ndx -f ../Production/solvent_npt.gro \
-            -n empty.ndx \
-            -o index.ndx >> $logFile 2>> $errFile 
-        check index.ndx 
-
-        echo '0 0' | gmx rdf -f ../Production/$MOLEC.xtc \
+        gmx rdf -f ../Production/$MOLEC.xtc \
             -s ../Production/$MOLEC.tpr \
-            -n index.ndx \
-            -o tba_tba.xvg >> $logFile 2>> $errFile 
-        check tba_tba.xvg
-
-        echo '0 1' | gmx rdf -f ../Production/$MOLEC.xtc \
-            -s ../Production/$MOLEC.tpr \
-            -n index.ndx \
-            -o tba_wat.xvg >> $logFile 2>> $errFile 
-        check tba_wat.xvg 
-
-        echo '1 1' | gmx rdf -f ../Production/$MOLEC.xtc \
-            -s ../Production/$MOLEC.tpr \
-            -n index.ndx \
-            -o wat_wat.xvg >> $logFile 2>> $errFile 
-        check wat_wat.xvg
-
-        echo '2 0' | gmx rdf -f ../Production/$MOLEC.xtc \
-            -s ../Production/$MOLEC.tpr \
-            -n index.ndx \
-            -o leu_tba.xvg >> $logFile 2>> $errFile 
-        check leu_tba.xvg
-
-        echo '2 1' | gmx rdf -f ../Production/$MOLEC.xtc \
-            -s ../Production/$MOLEC.tpr \
-            -n index.ndx \
+            -ref 'name CD1 CD2 and resname LEU' \
+            -sel 'resname SOL and name OW' \
             -o leu_wat.xvg >> $logFile 2>> $errFile 
         check leu_wat.xvg 
 
-        echo '3 0' | gmx rdf -f ../Production/$MOLEC.xtc \
+        gmx rdf -f ../Production/$MOLEC.xtc \
             -s ../Production/$MOLEC.tpr \
-            -n index.ndx \
-            -o lys_tba.xvg >> $logFile 2>> $errFile 
-        check lys_tba.xvg 
-
-        echo '3 1' | gmx rdf -f ../Production/$MOLEC.xtc \
-            -s ../Production/$MOLEC.tpr \
-            -n index.ndx \
+            -ref 'name NZ and resname LYS' \
+            -sel 'resname SOL and name OW' \
             -o lys_wat.xvg >> $logFile 2>> $errFile 
         check lys_wat.xvg 
+
+        gmx rdf -f ../Production/$MOLEC.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -ref 'name CD1 CD2 and resname LEU' \
+            -sel 'name C and resname TBUT' \
+            -o leu_tba.xvg >> $logFile 2>> $errFile 
+        check leu_tba.xvg
+
+        gmx rdf -f ../Production/$MOLEC.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -ref 'name NZ and resname LYS' \
+            -sel 'name C and resname TBUT' \
+            -o lys_tba.xvg >> $logFile 2>> $errFile 
+        check lys_tba.xvg 
 
         printf "Success\n" 
         cd ../
