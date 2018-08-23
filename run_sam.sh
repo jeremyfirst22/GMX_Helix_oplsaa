@@ -1183,7 +1183,7 @@ minimage(){
 
 rdf(){
     printf "\t\tCalculating RDFs.........................." 
-    if [ ! -f rdf/sam_wat.xvg ] ; then 
+    if [ ! -f rdf/sam_lys.xvg ] ; then 
         create_dir rdf
         cd rdf
         clean 
