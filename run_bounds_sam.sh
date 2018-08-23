@@ -338,9 +338,12 @@ copy_from_sam_prep(){
 
 
         if [ $numRestraints -eq 0 ] ; then
-            cp $SAM/prep/Build_system/neutral.top system.top ##before restraints added
+            #cp $SAM/prep/Build_system/neutral.top system.top ##before restraints added
+            cp $SAM/prep/Build_system/system.top system.top ##with both restraints, must remove both
             cp $SAM/prep/Build_system/*.itp .
-            rm distance_restraints.itp
+
+            cp distance_restraints.itp temp.itp
+            sed '$ d' temp.itp | sed '$ d' > distance_restraints.itp
         elif [ $numRestraints -eq 1 ] ; then
             cp $SAM/prep/Build_system/system.top system.top ##with both restraints, must remove one
             cp $SAM/prep/Build_system/*.itp .
@@ -417,7 +420,8 @@ production(){
                         -s $simTime.tpr \
                         -cpi $MOLEC.cpt >> $logFile 2>> $errFile  
                 else 
-                    ibrun mdrun_mpi -deffnm $MOLEC \
+                    #ibrun mdrun_mpi -deffnm $MOLEC \
+                    gmx mdrun -deffnm $MOLEC \
                         -s $simTime.tpr >> $logFile 2>> $errFile
                     fi 
                 check $MOLEC.gro 
