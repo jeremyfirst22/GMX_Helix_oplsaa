@@ -136,8 +136,10 @@ analysis(){
     minimage
     rdf
     nopbc
-    rmsd
-    cd_spectra
+#    rmsd
+#    cd_spectra
+    cluster
+    good-turing
     cd ../
 }
 
@@ -1030,6 +1032,62 @@ cd_spectra(){
 
         tar cvfz extract.tar.gz extract >> $logFile 2>> $errFile 
         check extract.tar.gz 
+
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
+cluster(){
+    printf "\t\tCluster analysis.........................." 
+    if [ ! -f cluster/clust-size.xvg ] ; then 
+        create_dir cluster
+        cd cluster
+        clean 
+
+        echo "Backbone Backbone" | gmx rms -s ../Production/$MOLEC.tpr \
+            -f ../Production/$MOLEC.xtc \
+            -dt 100 \
+            -m rmsd.xpm >> $logFile 2>> $errFile 
+        check rmsd.xpm 
+
+        echo "Backbone Protein" | gmx cluster -s ../Production/$MOLEC.tpr \
+            -f ../Production/$MOLEC.xtc \
+            -dm rmsd.xpm \
+            -cutoff 0.25 \
+            -method gromos \
+            -dt 100 \
+            -tr clust-trans.xpm \
+            -cl clusters.pdb \
+            -sz clust-size.xvg >> $logFile 2>> $errFile 
+        check clust-size.xvg clusters.pdb 
+
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
+good-turing(){
+    printf "\t\tGood-Turing Stats........................." 
+    gtScripts=$TOP/good-turing_scripts
+    if [[ ! -f good-turing/good_turing.rmsd.tar && -f cluster/rmsd.xpm ]] ; then 
+        create_dir good-turing
+        cd good-turing
+        clean 
+
+        python $gtScripts/xpm2dat.py ../cluster/rmsd.xpm 
+        check rmsd.dat 
+
+        ##https://github.com/pkoukos/GoodTuringMD
+        ##  Adapted to avoid interacitve file name input
+        echo "source('$gtScripts/Good_Turing.R')" > run_gt_stat.R
+
+        RScript --no-save --no-restore --verbose run_gt_stat.R > good-turing.log 2>&1 
+        check good_turing.rmsd.tar
 
         printf "Success\n" 
         cd ../
