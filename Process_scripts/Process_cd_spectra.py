@@ -14,7 +14,7 @@ import sys
 
 rc_file('rc_files/%s'%rcFile) 
 
-binSize= 500
+binSize= 2500
 
 top=os.getcwd()
 
@@ -74,7 +74,7 @@ for param in [ 'hirst','woody' ] :
 
             plt.legend() 
             plt.plot(datax,np.zeros_like(datax),linestyle='--',color='k') 
-            fig.savefig("figures/cd_spectra_%s_%s_%s.pdf"%(state,solvent,param),format='pdf' ) 
+            fig.savefig("figures/cd_spectra_%s_%s_%s.pdf"%(solvent,param,state),format='pdf' ) 
             print "Figure complete for %s %s using %s"%(state,solvent, param) 
             fig.clf()   
 
@@ -88,8 +88,8 @@ for param in [ 'hirst','woody' ] :
             ax.set_ylim([-25,25]) 
             ax.plot(datax,np.zeros_like(datax),linestyle='--',color='k') 
             #plt.legend() 
-            fig.savefig("figures/cd_spectra_avg_%s_%s_%s.pdf"%(state,solvent,param),format='pdf' ) 
-            print "Avg. figure complete for %s %s using %s"%(state,solvent, param) 
+            fig.savefig("figures/cd_spectra_avg_%s_%s_%s.pdf"%(solvent,param,state),format='pdf' ) 
+            print "Avg. figure complete for %s %s using %s"%(solvent, param,state) 
             fig.clf()   
             plt.close() 
 
@@ -104,7 +104,7 @@ for param in [ 'hirst','woody' ] :
     totAx.plot(datax,np.zeros_like(datax),linestyle='--',color='k') 
     totAx.set_title("Avg calculated CD from all states")
     totAx.set_xlim([190,250]) 
-    totAx.set_ylim([-10,15]) 
+    totAx.set_ylim([-25,25]) 
     totAx.legend() 
     totFig.savefig('figures/combined_cd_spectra_%s.pdf'%param,format='pdf')  
 
