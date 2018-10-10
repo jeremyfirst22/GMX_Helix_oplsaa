@@ -170,7 +170,7 @@ for row,solvent in enumerate(['sam','single_bound_sam','not_bound_sam']) :
         ax.set_ylim(0,1)
         ax.set_title("%s %s"%(state,solvent)) 
 
-        indAx.set_xlim(0,xmax) 
+        indAx.set_xlim(0,np.max(x)) 
         indAx.set_ylim(0,1)
         indAx.set_title("%s %s"%(state,solvent)) 
     
