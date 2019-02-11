@@ -86,7 +86,7 @@ main(){
     if [ $fold == "prep" ] ; then 
         prep
     else  
-        production 
+        #production 
         if $analysis ; then 
             analysis
             fi 
@@ -113,20 +113,20 @@ analysis(){
     if [ ! -d $fold ] ; then mkdir $fold ; fi 
     cd $fold 
     dssp
-    rgyr
-    minimage
-    rdf
+    #rgyr
+    #minimage
+    #rdf
     nopbc
     rmsd
     #cd_spectra 
-    cluster
+    #cluster
     good-turing
     cd ../
 }
 
 checkInput(){
     SOL=water
-    MOLEC=folded_$SOL
+    MOLEC=${fold}_${SOL}
     logFile=$TOP/$SOL/$fold/$fold.log
     errFile=$TOP/$SOL/$fold/$fold.err
     if $verbose ; then 
@@ -570,27 +570,44 @@ dssp(){
         cd dssp
         clean ##clean early. One of the outputs of gmx do_dssp is a *.dat file. We don't want to delete this while cleaning. 
 
-        echo 'Protein' | gmx do_dssp -f ../Production/$MOLEC.xtc \
-            -s ../Production/$MOLEC.tpr \
-            -ver 1 \
-            -sss HGI \
-            -ssdump ssdump.dat \
-            -o ss.xpm \
-            -a area.xpm \
-            -ta totarea.xvg \
-            -aa averarea.xvg \
-            -sc scount.xvg >> $logFile 2>> $errFile
+        if [ ! -f scount.xvg ] ; then 
+            echo 'Protein' | gmx do_dssp -f ../Production/$MOLEC.xtc \
+                -s ../Production/$MOLEC.tpr \
+                -ver 1 \
+                -sss HGI \
+                -ssdump ssdump.dat \
+                -o ss.xpm \
+                -a area.xpm \
+                -ta totarea.xvg \
+                -aa averarea.xvg \
+                -sc scount.xvg >> $logFile 2>> $errFile
+        fi 
         check scount.xvg ss.xpm area.xpm 
 
-        gmx xpm2ps -f area.xpm \
-            -by 10 \
-            -o area.eps >> $logFile 2>> $errFile 
+        if [ ! -f area.eps ] ; then 
+            gmx xpm2ps -f area.xpm \
+                -di $TOP/m2p_files/ps.m2p \
+                -by 10 \
+                -o area.eps >> $logFile 2>> $errFile 
+        fi 
         check area.eps
+        if [ ! -f area.png ] ; then 
+            ps2pdf area.eps 
+            convert area.pdf area.png 
+        fi 
 
-        gmx xpm2ps -f ss.xpm \
-            -by 10 \
-            -o ss.eps >> $logFile 2>> $errFile 
+        if [ ! -f ss.eps ] ; then 
+            gmx xpm2ps -f ss.xpm \
+                -di $TOP/m2p_files/ps.m2p \
+                -by 10 \
+                -o ss.eps >> $logFile 2>> $errFile 
+        fi 
         check ss.eps
+
+        if [ ! -f ss.png ] ; then 
+            ps2pdf ss.eps 
+            convert ss.pdf ss.png 
+        fi 
 
         ##Cut out helen.nrt from scount.xvg. 
         echo "#!/usr/bin/env python
@@ -609,25 +626,52 @@ for line in filelines :
             three=line.split()[1][1:] 
         if '5-Helix' in line : 
             five =line.split()[1][1:] 
+        if 'Turn' in line : 
+            turn =line.split()[1][1:] 
+        if 'B-Sheet' in line : 
+            bsheet = line.split()[1][1:] 
+        if 'B-Bridge' in line : 
+            bbridge= line.split()[1][1:] 
+        if 'Bend' in line : 
+            bend = line.split()[1][1:] 
 header -= 2
 
 data = np.genfromtxt('scount.xvg',skip_header=header)
 col1 = data[:,0]
 
 try : 
-    col2 = data[:,int(alpha)+1]
+    col2a = data[:,int(alpha)+1]
 except NameError : 
-    col2 = np.zeros(len(data[:,0])) 
+    col2a = np.zeros(len(data[:,0])) 
 try : 
-    col3a = data[:,int(three)+1]
+    col2b = data[:,int(three)+1]
 except NameError : 
-    col3a = np.zeros(len(data[:,0])) 
+    col2b = np.zeros(len(data[:,0])) 
 try : 
-    col3b = data[:,int(five)+1]
+    col2c = data[:,int(five)+1]
 except NameError : 
-    col3b = np.zeros(len(data[:,0])) 
-col3=col3a + col3b
-col4 = 18 - col2 - col3 
+    col2c = np.zeros(len(data[:,0])) 
+try : 
+    col2d = data[:,int(turn)+1]
+except NameError : 
+    col2d = np.zeros(len(data[:,0])) 
+col2=col2a + col2b + col2c + col2d
+
+try : 
+    col3a = data[:,int(bsheet)+1]
+except NameError : 
+    col3a = np.zeros(len(data[:,0]))  
+try : 
+    col3b = data[:,int(bbridge)+1]
+except NameError : 
+    col3b = np.zeros(len(data[:,0]))  
+try : 
+    col3c = data[:,int(bend)+1]
+except NameError : 
+    col3c = np.zeros(len(data[:,0]))  
+col3=col3a + col3b + col3c 
+
+col4 = 20 - col2 - col3
 
 for i in range(len(col1)) : 
     print \"%5i%5i%5i%5i\"%(col1[i],col2[i],col3[i],col4[i])" > cut_helen.py 
@@ -737,7 +781,6 @@ nopbc(){
             -pbc mol \
             -ur compact \
             -center \
-            -dt 40 \
             -o nopbc.xtc >> $logFile 2>> $errFile 
         check nopbc.xtc 
 
@@ -767,8 +810,8 @@ rmsd(){
         cd rmsd
         clean 
 
-        echo "Backbone Backbone" | gmx rms -f ../Production/$MOLEC.xtc \
-            -s ../Production/$MOLEC.tpr \
+        echo "Backbone Backbone" | gmx rms -f ../nopbc/nopbc.xtc \
+            -s $fileName \
             -o rmsd.xvg >> $logFile 2>> $errFile 
         check rmsd.xvg  
 
@@ -809,23 +852,49 @@ cd_spectra(){
 
 cluster(){
     printf "\t\tCluster analysis.........................." 
+    if [ ! -d ../both ] ; then 
+        cd ../
+        create_dir both
+        cd both 
+        clean 
+        cd ../$fold
+    fi 
+
+    cd ../both
+    if [ ! -f trajcat/both.xtc ] ; then 
+        create_dir trajcat 
+        cd trajcat 
+        clean 
+
+        if [[ ! -f ../../folded/Production/folded_$SOL.xtc || ! -f ../../unfolded/Production/unfolded_$SOL.xtc ]] ; then 
+            echo "Cannot create concatenated trajectory without production trajectories." 
+            exit 
+        fi 
+
+        gmx trjcat -f ../../folded/Production/folded_$SOL.xtc ../../unfolded/Production/unfolded_$SOL.xtc \
+            -cat \
+            -b 625000 \
+            -dt 100 \
+            -o both.xtc >> $logFile 2>> $errFile
+        check both.xtc 
+        cd ../
+    fi 
+
     if [ ! -f cluster/clust-size.xvg ] ; then 
         create_dir cluster
         cd cluster
         clean 
 
-        echo "Backbone Backbone" | gmx rms -s ../Production/$MOLEC.tpr \
-            -f ../Production/$MOLEC.xtc \
-            -dt 100 \
+        echo "Backbone Backbone" | gmx rms -s ../../folded/Production/folded_$SOL.tpr \
+            -f ../trajcat/both.xtc \
             -m rmsd.xpm >> $logFile 2>> $errFile 
         check rmsd.xpm 
 
-        echo "Backbone Protein" | gmx cluster -s ../Production/$MOLEC.tpr \
-            -f ../Production/$MOLEC.xtc \
+        echo "Backbone Protein" | gmx cluster -s ../../folded/Production/folded_$SOL.tpr \
+            -f ../trajcat/both.xtc \
             -dm rmsd.xpm \
-            -cutoff 0.25 \
+            -cutoff 0.40 \
             -method gromos \
-            -dt 100 \
             -tr clust-trans.xpm \
             -cl clusters.pdb \
             -sz clust-size.xvg >> $logFile 2>> $errFile 
@@ -836,17 +905,29 @@ cluster(){
     else
         printf "Skipped\n"
         fi  
+    cd ../$fold
 }
 
 good-turing(){
     printf "\t\tGood-Turing Stats........................." 
     gtScripts=$TOP/good-turing_scripts
-    if [[ ! -f good-turing/good_turing.rmsd.tar && -f cluster/rmsd.xpm ]] ; then 
+    if [ ! -f good-turing/good_turing.rmsd.tar ] ; then 
         create_dir good-turing
         cd good-turing
         clean 
 
-        python $gtScripts/xpm2dat.py ../cluster/rmsd.xpm 
+        sampling=1000 ##every 1 ns 
+        equilTime=600000 ##600 ns 
+        if [ ! -s rmsd.xpm ] ; then 
+            echo "Backbone Backbone" | gmx rms -s ../Production/$MOLEC.tpr \
+                -f ../Production/$MOLEC.xtc \
+                -dt $sampling \
+                -b $equilTime \
+                -m rmsd.xpm >> $logFile 2>> $errFile 
+        fi 
+        check rmsd.xpm 
+
+        python $gtScripts/xpm2dat.py rmsd.xpm 
         check rmsd.dat 
 
         ##https://github.com/pkoukos/GoodTuringMD

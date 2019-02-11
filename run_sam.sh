@@ -158,13 +158,14 @@ analysis(){
     cd $fold 
     dssp
     rgyr
-    minimage
-    rdf
-    nopbc
+    #minimage
+    #rdf
+    #nopbc
     #rmsd 
     #cd_spectra
     cluster
     good-turing
+    order
     cd ../
 }
 
@@ -906,7 +907,7 @@ heating(){
         echo "[ position_restraints ]" > posre_LIG.itp 
         echo ";; Pin sulfur atoms to spacing found on SAM" >> posre_LIG.itp 
         for atom in `grep LIG system_npt.gro | awk '{print $2"\t"$3}' | grep "^[SC]" | awk '{print $2}'` ; do 
-            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 1000  10000 1000 >> posre_LIG.itp 
+            printf "%6i%6i%10.f%10.f%10.f\n" $atom 1 1000000  1000000 1000000 >> posre_LIG.itp 
         done 
 
         gmx grompp -f $MDP/prep_heating_sam.mdp \
@@ -1072,27 +1073,45 @@ dssp(){
         cd dssp
         clean ##clean early. One of the outputs of gmx do_dssp is a *.dat file. We don't want to delete this while cleaning. 
 
-        echo 'Protein' | gmx do_dssp -f ../Production/$MOLEC.xtc \
-            -s ../Production/$MOLEC.tpr \
-            -ver 1 \
-            -sss HGI \
-            -ssdump ssdump.dat \
-            -o ss.xpm \
-            -a area.xpm \
-            -ta totarea.xvg \
-            -aa averarea.xvg \
-            -sc scount.xvg >> $logFile 2>> $errFile
+        if [ ! -f scount.xvg ] ; then 
+            echo 'Protein' | gmx do_dssp -f ../Production/$MOLEC.xtc \
+                -s ../Production/$MOLEC.tpr \
+                -ver 1 \
+                -sss HGI \
+                -ssdump ssdump.dat \
+                -o ss.xpm \
+                -a area.xpm \
+                -ta totarea.xvg \
+                -aa averarea.xvg \
+                -sc scount.xvg >> $logFile 2>> $errFile
+        fi 
         check scount.xvg ss.xpm area.xpm 
 
-        gmx xpm2ps -f area.xpm \
-            -by 10 \
-            -o area.eps >> $logFile 2>> $errFile 
+        if [ ! -f area.eps ] ; then 
+            gmx xpm2ps -f area.xpm \
+                -di $TOP/m2p_files/ps.m2p \
+                -by 10 \
+                -o area.eps >> $logFile 2>> $errFile 
+        fi 
         check area.eps
 
-        gmx xpm2ps -f ss.xpm \
-            -by 10 \
-            -o ss.eps >> $logFile 2>> $errFile 
+        if [ ! -f area.png ] ; then 
+            ps2pdf area.eps 
+            convert area.pdf area.png 
+        fi 
+
+        if [ ! -f ss.eps ] ; then 
+            gmx xpm2ps -f ss.xpm \
+                -di $TOP/m2p_files/ps.m2p \
+                -by 10 \
+                -o ss.eps >> $logFile 2>> $errFile 
+        fi 
         check ss.eps
+
+        if [ ! -f ss.png ] ; then 
+            ps2pdf ss.eps 
+            convert ss.pdf ss.png 
+        fi 
 
         ##Cut out helen.nrt from scount.xvg. 
         echo "#!/usr/bin/env python
@@ -1111,25 +1130,40 @@ for line in filelines :
             three=line.split()[1][1:] 
         if '5-Helix' in line : 
             five =line.split()[1][1:] 
+        if 'B-Sheet' in line : 
+            bsheet = line.split()[1][1:] 
+        if 'B-Bridge' in line : 
+            bbridge= line.split()[1][1:] 
 header -= 2
 
 data = np.genfromtxt('scount.xvg',skip_header=header)
 col1 = data[:,0]
 
 try : 
-    col2 = data[:,int(alpha)+1]
+    col2a = data[:,int(alpha)+1]
 except NameError : 
-    col2 = np.zeros(len(data[:,0])) 
+    col2a = np.zeros(len(data[:,0])) 
 try : 
-    col3a = data[:,int(three)+1]
+    col2b = data[:,int(three)+1]
 except NameError : 
-    col3a = np.zeros(len(data[:,0])) 
+    col2b = np.zeros(len(data[:,0])) 
 try : 
-    col3b = data[:,int(five)+1]
+    col2c = data[:,int(five)+1]
 except NameError : 
-    col3b = np.zeros(len(data[:,0])) 
+    col2c = np.zeros(len(data[:,0])) 
+col2=col2a + col2b + col2c
+
+try : 
+    col3a = data[:,int(bsheet)+1]
+except NameError : 
+    col3a = np.zeros(len(data[:,0]))  
+try : 
+    col3b = data[:,int(bbridge)+1]
+except NameError : 
+    col3b = np.zeros(len(data[:,0]))  
 col3=col3a + col3b
-col4 = 18 - col2 - col3 
+
+col4 = 18 - col2 - col3
 
 for i in range(len(col1)) : 
     print \"%5i%5i%5i%5i\"%(col1[i],col2[i],col3[i],col4[i])" > cut_helen.py 
@@ -1366,6 +1400,38 @@ good-turing(){
 
         RScript --no-save --no-restore --verbose run_gt_stat.R > good-turing.log 2>&1 
         check good_turing.rmsd.tar
+
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
+order(){
+    printf "\t\tCalculating order of SAM.................." 
+    if [ ! -f order/density.xvg ] ; then 
+        create_dir order
+        cd order
+        clean 
+
+        echo "r LIG & a S1 C1 C2 C3 C4 C5 C6 C7 C8 C9 C10" > selection.dat 
+        echo "q" >> selection.dat 
+
+        touch empty.ndx 
+        cat selection.dat | gmx make_ndx -f ../Production/$MOLEC.tpr \
+            -n empty.ndx \
+            -o heavyLIG.ndx >> $logFile 2>> $errFile 
+        check heavyLIG.ndx 
+
+        gmx density -s ../Production/$MOLEC.tpr \
+            -f ../Production/$MOLEC.xtc \
+            -n heavyLIG.ndx \
+            -d Z \
+            -sl 1000 \
+            -e 1000 \
+            -o density.xvg >> $logFile 2>> $errFile 
+        check density.xvg
 
         printf "Success\n" 
         cd ../
