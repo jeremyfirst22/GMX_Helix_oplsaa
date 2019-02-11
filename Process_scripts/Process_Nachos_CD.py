@@ -48,4 +48,4 @@ ax.set_xlim([200,250])
 
 
 
-plt.savefig('Exp_data/nachos_cd_spectra.png',format='png') 
+plt.savefig('figures/nachos_cd_spectra.png',format='png') 
