@@ -18,12 +18,23 @@ from matplotlib import rc_file
 if not os.path.isdir(saveDir) : 
     os.mkdir(saveDir) 
 
+figRows, figCols = 1,3 
+
 for row,solvent in enumerate(['water','tert','sam']): 
+    #fig, axarr = plt.subplots(1,3,sharey='row',gridspec_kw = {'width_ratios':[3,3,1]}) 
+    fig, axarr = plt.subplots(figRows, figCols, sharex='none',sharey='row', figsize=(10.5,6.5), gridspec_kw = {'width_ratios':[3,3,1]})
+    fig.subplots_adjust(wspace=0.1)
+    fig.subplots_adjust(hspace=0.40)
+    fig.text(0.5,0.04, "Time (ns)", ha='center', va='center')
+    fig.text(0.05,0.5, r"Helical fraction",ha='center',va='center',rotation='vertical')
+    fig.subplots_adjust(left=0.1, bottom=0.1,right=0.80,top=0.9)
+    fig.subplots_adjust(wspace=0) 
     for col,state in enumerate(['folded','unfolded']) : 
-        fig = plt.figure() 
-        ax = fig.add_axes([0.1, 0.1, 0.8, 0.8])
-        fig.text(0.5,0.05, "Time (ns)", ha='center', va='center') 
-        fig.text(0.05,0.5, r"R$_g$ (nm)",ha='center',va='center',rotation='vertical') 
+        ax = axarr[col]
+
+        color = 'b'
+        if col == 0 : 
+            color = 'r'
 
         datafile = '%s/%s/%s'%(solvent,state,inFile) 
         try : 
@@ -39,19 +50,26 @@ for row,solvent in enumerate(['water','tert','sam']):
             print "No file found for %s/%s"%(solvent,state) 
             continue 
         data[:,0] /= 1000  ##ps -> ns 
+
+        #data = data[25000:,:]
         
         #rc_file('%s/rc_files/%s'%(projectDir,rcFile) ) 
         
-        plt.plot(data[:,0],data[:,1]) 
-        
+        ax.plot(data[:,0],data[:,1],color=color) 
+
+
+        ax3 = axarr[2] 
+        x,y = np.histogram(data[:,1], np.linspace(0.6,1.8,100),density=True) 
+        y = y[:-1]
+
+        ax3.plot(x,y,color=color)
 
         #ax.set_xlim(0,xmax) 
         ax.set_ylim(0.6,1.8) 
-        ax.set_title("%s %s"%(state,solvent)) 
+        #ax.set_title("%s %s"%(state,solvent)) 
     
-        fig.savefig("%s/rgyr_%s_%s.png"%(saveDir,state,solvent), format='png')
-        plt.close(fig) 
-        print "%9s %9s plot complete"%(state,solvent)  
+    fig.savefig("%s/rgyr_%s_%s.png"%(saveDir,state,solvent), format='png')
+    print "%9s %9s plot complete"%(state,solvent)  
 
 
 
