@@ -4,7 +4,12 @@ water/
 tert/
 single_bound_sam/
 not_bound_sam/
+disordered_sam/
+disordered_single_bound_sam/
+disordered_not_bound_sam/
 good-turing_scripts/LICENSE
 good-turing_scripts/Good_Turing.R
 good-turing_scripts/README
 good-turing_scripts/
+.Rhistory
+.DS_Store
