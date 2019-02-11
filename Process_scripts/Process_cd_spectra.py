@@ -2,7 +2,7 @@
 
 projectDir='Users/jeremyfirst/GMX_Helix_oplsaa'
 #rcFile='paper.rc'
-rcFile='presentation.rc'
+rcFile='paper.rc'
 saveDir='figures'
 
 import numpy as np 
@@ -13,102 +13,150 @@ import os
 import sys 
 
 rc_file('rc_files/%s'%rcFile) 
+colormap= plt.cm.get_cmap('viridis')
+figRows, figCols = 3,2
 
-binSize= 2500
+binSize= 125.0 ##ns 
+skip = 1   ##Skip every n frames 
+
+binSize*=10  ##ns->framess
+binSize = int(binSize) 
+
+if not binSize%skip == 0 : 
+    print "Error: Skip/binSize wrong size. Skip does not fit into binSize" 
+    sys.exit() 
 
 top=os.getcwd()
 
-colorDict = {'water':'k','tert':'b','sam':'g'}
+colorDict = {'water':'k','tert':'b','not_bound_sam':'g'}
 
-for param in [ 'hirst','woody' ] : 
-    totFig = plt.figure() 
-    totAx = totFig.add_subplot(111) 
-    for solvent in ['water', 'tert', 'sam'] : 
-        totAvg = 0 
-        color = colorDict[solvent] 
-        for state in ['folded', 'unfolded'] : 
-            fig = plt.figure() 
-            ax = fig.add_subplot(111) 
-            plt.ylabel(r"[$\theta$] (10$^3$ deg cm$^2$ dmol$^{-1}$)",ha='center',va='center',rotation='vertical')  
-            plt.xlabel(r"$\lambda$ (nm)",ha='center',va='center') 
-            plt.xlim([190,250]) 
+xmin,xmax, xstep = 190,250,1.0
+#bandwidth = 10.5 
 
-            datafiles = glob.glob("%s/%s/cd_spectra/output-%s-%s-%s/frame*.cd"%(solvent,state,solvent,state,param) ) 
-            if len(datafiles) == 0 :  
-                print "No spectra found for %s %s with %s parameters" %(solvent,state,param)
-                continue 
+def gauss (a,b,c,x) :
+    return a*np.exp(-(x-b)**2/(c**2))
 
-            done = False 
-            index = 0 
-            try : 
-                data = np.genfromtxt("%s/%s/cd_spectra/output-%s-%s-%s/frame%i.cd"%(solvent,state,solvent,state,param,index)) 
-            except : 
-                print "Processed %i for %s %s %s"%(index, solvent, state, param)
-                continue 
-            avgdata = np.zeros_like(data[:,1]) 
-            datax = data[:,0]
-            
-            for j in np.arange(0,len(datafiles)/binSize) : 
-                bindata = np.zeros_like(data[:,1]) 
-                index = 0 
-                for i in np.arange(j*binSize,(j+1)*binSize) : 
-                    try : 
-                        data = np.genfromtxt("%s/%s/cd_spectra/output-%s-%s-%s/frame%i.cd"%(solvent,state,solvent,state,param,i)) 
-                    except : 
-                        print "Processed %i for %s %s %s"%(i, solvent, state, param)
-                        break
-                    bindata += data[:,1]
-                    avgdata += data[:,1]
-                    index +=1
-                bindata /= index * 1000 
-                label="%i-%i ns"%(binSize*j/10,binSize*(j+1)/10) 
-                plt.plot(datax,bindata,label=label) 
-                continue 
-            plt.title("From %s in %s"%(state,solvent)) 
-            plt.ylim([-25,25]) 
+for bandwidth in [10.0] : #np.arange(9,13,0.5,dtype=float) : 
+    sys.stdout.write("\nBandwidth = %3.1f:\n"%bandwidth)  
+    for param in [ 'hirst' ,'woody' ] : 
+        sys.stdout.write("\nUsing %6s parameters:\n"%param)  
 
-            colormap = plt.cm.jet
-            colors = [colormap(i) for i in np.linspace(0,1,len(ax.lines))]
-            for i,j in enumerate(ax.lines) : 
-                j.set_color(colors[i]) 
+        left, right = 0.18,0.95
+        bottom, top = 0.13,0.95
+        fig, ax = plt.subplots(1,1,figsize=(2.5,2.5)) 
+        fig.subplots_adjust(left=left, bottom=bottom,right=right,top=top)
+        fig.text((right-left)/2+left,0.00,           r"Wavelength $\lambda $(nm)", ha='center', va='bottom')
+        fig.text(0.01,(top-bottom)/2+bottom,         r"Calc. ellipticity $\thetaup$ (10$^3$ mdeg)",ha='left',va='center',rotation='vertical')
 
-            plt.legend() 
-            plt.plot(datax,np.zeros_like(datax),linestyle='--',color='k') 
-            fig.savefig("figures/cd_spectra_%s_%s_%s.pdf"%(solvent,param,state),format='pdf' ) 
-            print "Figure complete for %s %s using %s"%(state,solvent, param) 
-            fig.clf()   
-
-            fig = plt.figure() 
-            ax = fig.add_subplot(111) 
-            ax.set_ylabel(r"[$\theta$] (10$^3$ deg cm$^2$ dmol$^{-1}$)",ha='center',va='center',rotation='vertical')  
-            ax.set_xlabel(r"$\lambda$ (nm)",ha='center',va='center') 
-            ax.set_title("From %s in %s"%(state,solvent)) 
-            ax.set_xlim([190,250]) 
-            ax.plot(datax,avgdata/(len(datafiles) * 1000) ,linewidth=5,label='Trajectory average',color=color ) 
-            ax.set_ylim([-25,25]) 
-            ax.plot(datax,np.zeros_like(datax),linestyle='--',color='k') 
-            #plt.legend() 
-            fig.savefig("figures/cd_spectra_avg_%s_%s_%s.pdf"%(solvent,param,state),format='pdf' ) 
-            print "Avg. figure complete for %s %s using %s"%(solvent, param,state) 
-            fig.clf()   
-            plt.close() 
-
-            try : 
-                totAvg += avgdata
-            except : 
-                totAvg = np.zeros_like(avgdata) 
-                totAvg += avgdata
-
-        print len(datax), len(totAvg) 
-        totAx.plot(datax,totAvg/(2* len(datafiles) * 1000) ,linewidth=3,label=solvent,color=color ) 
-    totAx.plot(datax,np.zeros_like(datax),linestyle='--',color='k') 
-    totAx.set_title("Avg calculated CD from all states")
-    totAx.set_xlim([190,250]) 
-    totAx.set_ylim([-25,25]) 
-    totAx.legend() 
-    totFig.savefig('figures/combined_cd_spectra_%s.pdf'%param,format='pdf')  
+        figTA, axTA = plt.subplots(1,1) 
+        Z = [[0,0],[0,0]]                                 # Apparently you can't set a colorbar without a mappable. This is hack 
+        step = 25 ##size of each step in color bar
+        levels = np.arange(0,1250 + binSize/ 10 ,binSize/ 10) #   around that. Taken from :
+        CS3 = axTA.contourf(Z, levels, cmap=colormap)     #   https://stackoverflow.com/questions/8342549/matplotlib-add-colorbar-to-a-sequence-of-line-plots
+        plt.close(figTA) 
 
 
-                 
+        left, right = 0.10, 0.75
+        bottom, top =  0.1,0.95
+        hspace, wspace = 0.15,0.1
+
+        fig2, axarr2 = plt.subplots(figRows, figCols, sharex='col',sharey='row', figsize=(5.0,3.8))
+        fig2.subplots_adjust(left=left, bottom=bottom,right=right,top=top)
+        fig2.subplots_adjust(wspace=wspace,hspace=hspace)
+
+        fig2.text((right-left)/2+left,0.03,           r"Wavelength $\lambda $(nm)", ha='center', va='center')
+        fig2.text(0.02,(top-bottom)/2+bottom,         r"Calc. ellipticity $\thetaup$ (10$^3$ mdeg)",ha='center',va='center',rotation='vertical')
+        
+        fig2.text((right-left)/4+left,top,            r"Starting with folded",ha='center',va='bottom')
+        fig2.text(right-(right-left)/4,top,           r"Starting with unfolded",ha='center',va='bottom')
+        fig2.text(right,top-(top-bottom)/6 ,          r"H$_2$O",ha='left',va='center',rotation=270)
+        fig2.text(right,top-(top-bottom)/2,           r"2:1 H$_2$O:$t$-BuOH",ha='left',va='center',rotation=270)
+        fig2.text(right,(top-bottom-hspace)/6+bottom, r"SAM surface",ha='left',va='center',rotation=270)
+
+        for row,solvent in enumerate(['water', 'tert', 'not_bound_sam']) : 
+            if solvent == 'water' :
+                equilTime = 600 ##ns
+            else :
+                equilTime = 150 ##ns
+            equilTime *= 10 # ns -> frames, frames printed every 100 ps
+
+            color = colorDict[solvent] 
+    
+            xs = np.arange(xmin,xmax,xstep,dtype='float') 
+            avgData = np.zeros_like(xs) 
+    
+            for col,state in enumerate(['folded', 'unfolded']) : 
+                ax2 = axarr2[row,col]
+
+                datafiles = glob.glob('%s/%s/cd_spectra/output-%s-%s-%s/frame*.cdl'%(solvent,state,solvent.replace('_','-'),state,param) )
+                numBins = int(len(datafiles) / binSize ) 
+                
+                numFiles = len(datafiles[equilTime:]) /skip    ##number of line spectra in average spectra
+                for j in range(0,numBins) :    ## For each bin
+                    sys.stdout.write('\r')
+                    sys.stdout.write("Processing %5i of %5i %6s %8s"%(j+1,numBins,solvent,state) ) 
+                    sys.stdout.flush()     
+
+                    bindata = np.zeros_like(xs) 
+                    for i in range(j*binSize,(j+1)*binSize,skip) : ##For each spectra in each bin
+                        datafile = "%s/%s/cd_spectra/output-%s-%s-%s/frame%i.cdl"%(solvent,state,solvent.replace('_','-'),state,param,i)
+                        data = np.genfromtxt(datafile) 
+    
+                        for trans in data :
+                            a, b, c = trans[1], trans[0], bandwidth
+                            spec = gauss(a,b,c,xs)
+        
+                            #plt.scatter(trans[0],trans[1])
+                            #plt.plot(xs,spec)
+        
+                            for k,x in enumerate(xs) :
+                                bindata[k] += spec[k]
+                                if i > equilTime : 
+                                    avgData[k] += spec[k]
+                    bindata /= binSize / skip
+
+                    ##This is an unit conversion from DBR (Rotational strength) to ellipticity. 
+                    ##The 0.248 factor is from Schellman. Chem. Reviews. 1974 pg. 326. 
+                    ##The 0.0082 factor is fit to match my line spectra with output from DichroCalc.
+                    ## I'm not sure why I'm off by this factor, but is likely conversion between 
+                    ##   delta epsilon (extinction) and molar ellipticity
+                    bindata = (bindata * 0.248 * xs)/0.0082 
+                    bindata /= 1000 
+
+                    sc = ax2.plot(xs,bindata)#,label=label)
+
+
+                #ax2.set_title("%s %s"%(solvent.replace('_',' '),state)) 
+                ax2.set_ylim([-35,40]) 
+
+                colors = [colormap(i) for i in np.linspace(0,1,len(ax2.lines))] 
+                for i,j in enumerate(ax2.lines) : 
+                    j.set_color(colors[i]) 
+       #         fig2.legend(loc=1) 
+
+                sys.stdout.write('\n') 
+
+            avgData /= numFiles * 2 ##two trajectories
+            ##DBR -> mdeg
+            avgData = (avgData * 0.248 * xs)/0.0082 
+
+            avgData /= 1000 
+
+            ax.plot(xs,avgData,color=colorDict[solvent],linewidth=2) 
+
+        cbar_ax = fig2.add_axes([0.80, 0.15, 0.03, 0.7])
+        cbar = fig2.colorbar(CS3, cax=cbar_ax,ticks=[0+(binSize/10)/2,1250-(binSize/10)/2])
+        cbar.ax.set_yticklabels(["0-%i ns"%(binSize/10),"%i-1250 ns"%(1250-(binSize/10))]) 
+
+        fig2.savefig('figures/cd_spectra_%s_time_resolved_%.1f.png'%(param,bandwidth),format='png') 
+        plt.close(fig2) 
+
+        ax.set_xlim([190,250]) 
+        ax.set_ylim([-35,40]) 
+        fig.savefig('figures/combined_cd_spectra_%s_%.1f.png'%(param,bandwidth),format='png')
+        plt.close(fig) 
+
+
+
 
 
