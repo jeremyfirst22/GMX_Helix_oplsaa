@@ -72,7 +72,7 @@ green= mpatches.Patch([],[],color='g',label=r"$3_{10}$-helix")
 red  = mpatches.Patch([],[],color='r',label=r"unfolded")
 
 xmax=50
-for row,solvent in enumerate(['sam','single_bound_sam','not_bound_sam']) : 
+for row,solvent in enumerate(['sam','single_bound_sam','not_bound_sam']): 
     for col,state in enumerate(['folded','unfolded']) : 
         indFig = plt.figure() 
         #indAx = indFig.add_axes([0.1, 0.1, 0.7, 0.8])
@@ -99,9 +99,9 @@ for row,solvent in enumerate(['sam','single_bound_sam','not_bound_sam']) :
 
         binNumber = frameNumber/binSize
 
-        y1 = data[:,1] # Alpha 
-        y2 = data[:,2] # 3_10 Helix
-        y3 = data[:,3] ##unfolded
+        y1 = data[:,1] # Helical
+        y2 = data[:,2] # B character
+        y3 = data[:,3] # unfolded
         
         y1 /= 18 ##18 residues, so now each is fraction of total peptide
         y2 /= 18 
@@ -157,10 +157,10 @@ for row,solvent in enumerate(['sam','single_bound_sam','not_bound_sam']) :
         ax2.scatter(x,y1binned,c='b',s=0.25,alpha=0.5)  
         ax2.scatter(x,y2binned,c='g',s=0.25,alpha=0.5)  
         ax2.scatter(x,y3binned,c='r',s=0.25,alpha=0.5)  
-        
-        ax.fill_between(x,0                ,y3binned         ,facecolor='r',linewidth=0.0, edgecolor='none')
-        ax.fill_between(x,y3binned         ,y3binned+y2binned,facecolor='g',linewidth=0.0, edgecolor='none') 
-        ax.fill_between(x,y3binned+y2binned,1                ,facecolor='b',linewidth=0.0, edgecolor='none') 
+
+        ax.fill_between(x,0                ,y1binned                  ,facecolor='b',linewidth=0.0, edgecolor='none')
+        ax.fill_between(x,y1binned         ,y1binned+y2binned         ,facecolor='g',linewidth=0.0, edgecolor='none')
+        ax.fill_between(x,y1binned+y2binned,y1binned+y2binned+y3binned,facecolor='r',linewidth=0.0, edgecolor='none') 
 
         indAx.fill_between(x,0                ,y3binned         ,facecolor='r',linewidth=0.0, edgecolor='none')
         indAx.fill_between(x,y3binned         ,y3binned+y2binned,facecolor='g',linewidth=0.0, edgecolor='none') 
@@ -170,7 +170,7 @@ for row,solvent in enumerate(['sam','single_bound_sam','not_bound_sam']) :
         ax.set_ylim(0,1)
         ax.set_title("%s %s"%(state,solvent)) 
 
-        indAx.set_xlim(0,np.max(x)) 
+        indAx.set_xlim(0,xmax) 
         indAx.set_ylim(0,1)
         indAx.set_title("%s %s"%(state,solvent)) 
     
@@ -186,7 +186,7 @@ for row,solvent in enumerate(['sam','single_bound_sam','not_bound_sam']) :
         print "%9s %9s plot complete"%(state,solvent)  
 
 #fig.legend(handles=[blue, green, red],loc=4)
-fig.legend( [blue,green,red],[r"$\alpha$-helix",r"$3_{10}$-helix",r"unfolded"], 
+fig.legend( [blue,green,red],[r"helix",r"$\beta$",r"unfolded"], 
     loc = 'center', bbox_to_anchor=(0.90, 0.5),
     fontsize='medium') 
 

@@ -2,7 +2,7 @@
 
 projectDir='/Users/jeremyfirst/GMX_Helix_oplsaa'
 #rcFile='poster.rc'
-rcFile='presentation.rc'
+rcFile='paper.rc'
 inFile='dssp/helen.nrt'
 saveDir='figures'
 outname='%s/combined_helicity.png'%saveDir
@@ -22,8 +22,6 @@ from matplotlib import rc_file
 import matplotlib as mpl
 
 rc_file('rc_files/%s'%rcFile) 
-
-mpl.rcParams['figure.figsize'] = 5,3.8
 
 def Usage():
     print "Usage: %s <binSize=10> <endTime=-1 (ns)>"%(sys.argv[0])
@@ -46,19 +44,36 @@ except :
 if not os.path.isdir(saveDir) : 
     os.mkdir(saveDir) 
 
-fig, axarr = plt.subplots(figRows, figCols, sharex='none',sharey='row', figsize=(10.5,6.5)) 
-fig.subplots_adjust(wspace=0.1) 
-fig.subplots_adjust(hspace=0.40) 
-fig.text(0.5,0.04, "Time (ns)", ha='center', va='center') 
-fig.text(0.05,0.5, r"Helical fraction",ha='center',va='center',rotation='vertical') 
-fig.subplots_adjust(left=0.1, bottom=0.1,right=0.80,top=0.9)
+left, right = 0.08, 0.8 
+top, bottom = 0.95, 0.1
+hspace, wspace = 0.15,0.1
 
-fig2, axarr2 = plt.subplots(figRows, figCols, sharex='none',sharey='row', figsize=(10.5,6.5)) 
-fig2.subplots_adjust(wspace=0.1) 
-fig2.subplots_adjust(hspace=0.40) 
-fig2.text(0.5,0.04, "Time (ns)", ha='center', va='center') 
-fig2.text(0.05,0.5, r"Avg helical content",ha='center',va='center',rotation='vertical') 
-fig2.subplots_adjust(left=0.1, bottom=0.1,right=0.80,top=0.9)
+fig, axarr = plt.subplots(figRows, figCols, sharex='col',sharey='row', figsize=(6.5,3.5)) 
+fig.subplots_adjust(wspace=wspace) 
+fig.subplots_adjust(hspace=hspace) 
+fig.subplots_adjust(left=left, bottom=bottom,right=right,top=top)
+
+fig.text((right-left)/2+left,0.03,           r"Time (ns)", ha='center', va='center') 
+fig.text(0.02,(top-bottom)/2+bottom,         r"Helical fraction",ha='center',va='center',rotation='vertical') 
+fig.text((right-left)/4+left,top,            r"Starting with folded",ha='center',va='bottom') 
+fig.text(right-(right-left)/4,top,           r"Starting with unfolded",ha='center',va='bottom') 
+fig.text(right,top-(top-bottom)/6 ,          r"H$_2$O",ha='left',va='center',rotation=270) 
+fig.text(right,top-(top-bottom)/2,           r"2:1 H$_2$O:$t$-BuOH",ha='left',va='center',rotation=270) 
+fig.text(right,(top-bottom-hspace)/6+bottom, r"SAM surface",ha='left',va='center',rotation=270) 
+
+fig2, axarr2 = plt.subplots(figRows, figCols, sharex='col',sharey='row', figsize=(6.5,3.5)) 
+fig2.subplots_adjust(wspace=wspace) 
+fig2.subplots_adjust(hspace=hspace) 
+fig2.subplots_adjust(left=left, bottom=bottom,right=right,top=top)
+
+fig2.text((right-left)/2+left,0.03,           r"Time (ns)", ha='center', va='center') 
+fig2.text(0.02,(top-bottom)/2+bottom,         r"Average helical fraction",ha='center',va='center',rotation='vertical') 
+fig2.text((right-left)/4+left,top,            r"Starting with folded",ha='center',va='bottom') 
+fig2.text(right-(right-left)/4,top,           r"Starting with unfolded",ha='center',va='bottom') 
+fig2.text(right,top-(top-bottom)/6 ,          r"H$_2$O",ha='left',va='center',rotation=270) 
+fig2.text(right,top-(top-bottom)/2,           r"2:1 H$_2$O:$t$-BuOH",ha='left',va='center',rotation=270) 
+fig2.text(right,(top-bottom-hspace)/6+bottom, r"SAM surface",ha='left',va='center',rotation=270) 
+
 
 figD, axarrD = plt.subplots(figRows, figCols, sharex='none',sharey='row', figsize=(10.5,6.5)) 
 figD.subplots_adjust(wspace=0.1) 
@@ -72,16 +87,10 @@ green= mpatches.Patch([],[],color='g',label=r"$3_{10}$-helix")
 red  = mpatches.Patch([],[],color='r',label=r"unfolded")
 
 xmax=50
-for row,solvent in enumerate(['water','tert','sam']): 
+for row,solvent in enumerate(['water','tert','not_bound_sam']): 
+    y1Total,y2Total,y3Total = 0,0,0
     for col,state in enumerate(['folded','unfolded']) : 
-        indFig = plt.figure() 
-        #indAx = indFig.add_axes([0.1, 0.1, 0.7, 0.8])
-        indFig.text(0.5,0.03, "Time (ns)", ha='center', va='center') 
-        indFig.text(0.05,0.5, r"Helical fraction",ha='center',va='center',rotation='vertical') 
-        indAx = indFig.add_subplot(111) 
-        indFig.subplots_adjust(left=0.15, bottom=0.15,right=0.95,top=0.9)
-        #indAx.set_xlabel("Time (ns)", ha='center', va='center') 
-        #indAx.set_ylabel(r"Helical fraction",ha='center',va='center',rotation='vertical') 
+        continue 
         ax = axarr[row,col]
         ax2 = axarr2[row,col]
         axD = axarrD[row,col]
@@ -97,11 +106,25 @@ for row,solvent in enumerate(['water','tert','sam']):
         frameNumber = len(data)
         assert frameNumber > 0 
 
+        if solvent == 'water' : 
+            equilTime = 600 ##ns
+        elif solvent == 'tert' : 
+            if state == 'folded' : 
+                equilTime = 150 
+            if state == 'unfolded' : 
+                equilTime = 250 
+        elif solvent == 'not_bound_sam' : 
+            equilTime = 50 
+
+        equilTime *= 1000 ##ns -> ps 
+        equilTime /= 4 ##ps -> frames 
+
+        #binNumber = (frameNumber-equilTime)/binSize
         binNumber = frameNumber/binSize
 
-        y1 = data[:,1] # Alpha 
-        y2 = data[:,2] # 3_10 Helix
-        y3 = data[:,3] ##unfolded
+        y1 = data[:,1] # Helical
+        y2 = data[:,2] # B character
+        y3 = data[:,3] # unfolded
         
         y1 /= 18 ##18 residues, so now each is fraction of total peptide
         y2 /= 18 
@@ -118,9 +141,9 @@ for row,solvent in enumerate(['water','tert','sam']):
         y2binned = np.mean(y2.reshape(-1,binSize),axis=1) 
         y3binned = np.mean(y3.reshape(-1,binSize),axis=1) 
 
-        y1average = np.cumsum(y1binned, dtype=float) 
-        y2average = np.cumsum(y2binned, dtype=float) 
-        y3average = np.cumsum(y3binned, dtype=float) 
+        y1average = np.cumsum(y1binned[equilTime/binSize:], dtype=float) 
+        y2average = np.cumsum(y2binned[equilTime/binSize:], dtype=float) 
+        y3average = np.cumsum(y3binned[equilTime/binSize:], dtype=float) 
 
         y1firstD = np.zeros_like(y1average) 
         y2firstD = np.zeros_like(y2average) 
@@ -136,58 +159,52 @@ for row,solvent in enumerate(['water','tert','sam']):
 
         #rc_file('%s/rc_files/%s'%(projectDir,rcFile) ) 
         
-        x = data[:,0] 
+        #x = data[equilTime:,0] 
+        #x = np.linspace((equilTime*4),np.max(data[:,0]),binNumber) 
         x = np.linspace(0,np.max(data[:,0]),binNumber) 
         x /= 1000 
         if x.max() > xmax : 
             xmax = x.max()
 
-        ax2.plot(x,y1average,color='b') 
-        ax2.plot(x,y2average,color='g') 
-        ax2.plot(x,y3average,color='r') 
+        ax2.plot(x[equilTime/binSize:],y1average,color='b') 
+        ax2.plot(x[equilTime/binSize:],y2average,color='g') 
+        ax2.plot(x[equilTime/binSize:],y3average,color='y') 
+        
+        ax2.axvline(equilTime*4/1000,color='k') 
 
         ax2.axhline(y1average[-1],color='b',linestyle='--',linewidth=1) 
         ax2.axhline(y2average[-1],color='g',linestyle='--',linewidth=1) 
-        ax2.axhline(y3average[-1],color='r',linestyle='--',linewidth=1) 
+        ax2.axhline(y3average[-1],color='y',linestyle='--',linewidth=1) 
 
-        axD.plot(x,y1firstD,color='r') 
-        axD.set_ylim(-0.0001,0.0001) 
-        axD.axhline(0,color='k',linestyle='--',linewidth=.5) 
+        #axD.plot(x,y1firstD,color='r') 
+        #axD.set_ylim(-0.0001,0.0001) 
+        #axD.axhline(0,color='k',linestyle='--',linewidth=.5) 
 
-        ax2.scatter(x,y1binned,c='b',s=0.25,alpha=0.5)  
-        ax2.scatter(x,y2binned,c='g',s=0.25,alpha=0.5)  
-        ax2.scatter(x,y3binned,c='r',s=0.25,alpha=0.5)  
-        
-        ax.fill_between(x,0                ,y3binned         ,facecolor='r',linewidth=0.0, edgecolor='none')
-        ax.fill_between(x,y3binned         ,y3binned+y2binned,facecolor='g',linewidth=0.0, edgecolor='none') 
-        ax.fill_between(x,y3binned+y2binned,1                ,facecolor='b',linewidth=0.0, edgecolor='none') 
+        ax2.scatter(x,y1binned,c='b',s=0.15,alpha=0.5)  
+        ax2.scatter(x,y2binned,c='g',s=0.15,alpha=0.5)  
+        ax2.scatter(x,y3binned,c='r',s=0.15,alpha=0.5)  
 
-        indAx.fill_between(x,0                ,y3binned         ,facecolor='r',linewidth=0.0, edgecolor='none')
-        indAx.fill_between(x,y3binned         ,y3binned+y2binned,facecolor='g',linewidth=0.0, edgecolor='none') 
-        indAx.fill_between(x,y3binned+y2binned,1                ,facecolor='b',linewidth=0.0, edgecolor='none') 
-        
+        ax.fill_between(x,0                ,y1binned                  ,facecolor='b',linewidth=0.0, edgecolor='none')
+        ax.fill_between(x,y1binned         ,y1binned+y2binned         ,facecolor='g',linewidth=0.0, edgecolor='none')
+        ax.fill_between(x,y1binned+y2binned,y1binned+y2binned+y3binned,facecolor='r',linewidth=0.0, edgecolor='none') 
+
         ax.set_xlim(0,np.max(x)) 
         ax.set_ylim(0,1)
-        ax.set_title("%s %s"%(state,solvent)) 
+        
+        #ax.set_title('%s %s'%(state,solvent.replace('_',' ')) )
 
-        indAx.set_xlim(0,xmax) 
-        indAx.set_ylim(0,1)
-        indAx.set_title("%s %s"%(state,solvent)) 
-    
-        if state == 'unfolded' : 
-#            indFig.legend( [blue,green,red],[r"$\alpha$-helix",r"$3_{10}$-helix",r"unfolded"], 
-#            loc = 'center', bbox_to_anchor=(0.90, 0.5),
-#            fontsize='medium') 
-            indAx.legend( [blue,green,red],[r"$\alpha$-helix",r"$3_{10}$-helix",r"unfolded"], 
-            loc = 4,
-            fontsize='medium') 
-        indFig.savefig("%s/helicity_%s_%s.png"%(saveDir,state,solvent), format='png')
-        plt.close(indFig) 
-        print "%9s %9s plot complete"%(state,solvent)  
+        #print "%9s %9s plot complete"%(state,solvent)  
+
+        y1Total += y1average[-1]
+        y2Total += y2average[-1]
+        y3Total += y3average[-1]
+
+        print "%10s\t%10s\tHelix: %0.3f\tBeta: %0.3f\tUnfolded: %0.3f"%(state,solvent,y1average[-1],y2average[-1],y3average[-1]) 
+    print "%10s\t%10s\tHelix: %0.3f\tBeta: %0.3f\tUnfolded: %0.3f"%("Total: ",solvent,y1Total/2, y2Total/2, y3Total/2)
 
 #fig.legend(handles=[blue, green, red],loc=4)
-fig.legend( [blue,green,red],[r"$\alpha$-helix",r"$3_{10}$-helix",r"unfolded"], 
-    loc = 'center', bbox_to_anchor=(0.90, 0.5),
+fig.legend( [blue,green,red],[r"helix",r"$\beta$",r"unfolded"], 
+    loc=(0.85,0.47),
     fontsize='medium') 
 
 fig.savefig(outname, format='png')
