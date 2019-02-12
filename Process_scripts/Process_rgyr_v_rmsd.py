@@ -146,6 +146,7 @@ for row, solvent in enumerate(['water','tert','not_bound_sam']) :
 
 cbar_ax = fig.add_axes([0.90, 0.15, 0.03, 0.75])
 cbar = fig.colorbar(sc, cax=cbar_ax) 
+fig.text(0.88, 0.13         ,     r"Time (ns)",ha='left',va='top') 
 #cbar.set_label('Time (ns)',rotation='vertical') 
 fig.savefig(outname, format='png')
 plt.close() 
