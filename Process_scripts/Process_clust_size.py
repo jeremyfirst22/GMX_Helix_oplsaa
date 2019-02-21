@@ -22,7 +22,7 @@ colorDict = {'water':'k','tert':'b','not_bound_sam':'g'}
 left, right = 0.13,0.95
 bottom, top = 0.13,0.95
 
-fig, ax = plt.subplots(1,1)
+fig, ax = plt.subplots(1,1,figsize=(3.25,2))
 fig.subplots_adjust(left=left, bottom=bottom,right=right,top=top)
 fig.text((right-left)/2+left,0.00,           r"\# of clusters", ha='center', va='bottom')
 fig.text(0.01,(top-bottom)/2+bottom,         r"\% of total ensemble",ha='left',va='center',rotation='vertical')
