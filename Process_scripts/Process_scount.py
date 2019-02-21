@@ -80,10 +80,21 @@ royalblue = mpatches.Patch([],[],color='royalblue',label=r"Turn")
 green= mpatches.Patch([],[],color='g',label=r"Strand")
 red  = mpatches.Patch([],[],color='r',label=r"Unfolded")
 
+indexToLetter = {
+        1:'A', 
+        2:'B', 
+        3:'C', 
+        4:'D', 
+        5:'E', 
+        6:'F'  
+        }
+
 xmax=50
+index = 0 
 for row,solvent in enumerate(['water','tert','not_bound_sam']): 
     y1Total,y2Total,y3Total,y1dTotal = 0,0,0,0
     for col,state in enumerate(['folded','unfolded']) : 
+        index += 1
         try : 
             del alpha,three,five,turn,bsheet,bbridge,bend,coil
         except : 
@@ -239,10 +250,12 @@ for row,solvent in enumerate(['water','tert','not_bound_sam']):
         y3Total += y3average[-1]
         y1dTotal += y1daverage[-1]
 
+        ax.text(0.01,0.95,r"\textsf{%c}"%indexToLetter[index],va='top',ha='left',transform=ax.transAxes,fontsize=12) 
+
         print "%10s\t%10s\tHelix: %0.3f\tTurn: %0.3f\tBeta: %0.3f\tUnfolded: %0.3f"%(state,solvent,y1average[-1],y1daverage[-1],y2average[-1],y3average[-1]) 
     print "%10s\t%10s\tHelix: %0.3f\tTurn: %0.3f\tBeta: %0.3f\tUnfolded: %0.3f"%("Total: ",solvent,y1Total/2,y1dTotal/2,y2Total/2, y3Total/2)
 
-fig.legend( [blue,royalblue,green,red],[r"Helix","Turn",r"Strand",r"Unfolded"], 
+fig.legend( [red,green,royalblue,blue],[r"Unfolded",r"Strand","Turn",r"Helix"], 
     loc = 'center', bbox_to_anchor=(0.90, 0.525),
     fontsize='medium') 
 

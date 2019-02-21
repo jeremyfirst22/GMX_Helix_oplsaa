@@ -45,7 +45,7 @@ fig.subplots_adjust(left=left, bottom=bottom,right=right,top=top)
 fig.subplots_adjust(wspace=wspace,hspace=hspace)
 
 fig.text((right-left)/2+left,0,           r"Radius of gyration R$_g$ ($\AA$)", ha='center', va='bottom')
-fig.text(0,(top-bottom)/2+bottom,         r"RMSD ($\AA$)",ha='left',va='center',rotation='vertical')
+fig.text(0.01,(top-bottom)/2+bottom,         r"RMSD ($\AA$)",ha='left',va='center',rotation='vertical')
 
 fig.text((right-left)/4+left,top,            r"Starting with folded",ha='center',va='bottom')
 fig.text(right-(right-left)/4,top,           r"Starting with unfolded",ha='center',va='bottom')
@@ -53,10 +53,19 @@ fig.text(right,top-(top-bottom)/6 ,          r"H$_2$O",ha='left',va='center',rot
 fig.text(right,top-(top-bottom)/2,           r"2:1 H$_2$O:$t$-BuOH",ha='left',va='center',rotation=270)
 fig.text(right,(top-bottom-hspace)/6+bottom, r"SAM surface",ha='left',va='center',rotation=270)
 
-#legend
+indexToLetter = {
+        1:'A',
+        2:'B',
+        3:'C',
+        4:'D',
+        5:'E',
+        6:'F'
+        }
 
+index = 0 
 for row, solvent in enumerate(['water','tert','not_bound_sam']) : 
     for col,state in enumerate(['folded','unfolded']) : 
+        index += 1 
         if solvent == "water" : 
             equilTime = 600 
         else : 
@@ -141,6 +150,9 @@ for row, solvent in enumerate(['water','tert','not_bound_sam']) :
         sc = ax.scatter(xs ,ys,c=z,edgecolor='none',s=10,alpha=1,zorder=2,vmin=0,vmax=max(z)+1) #frames -> ns
         #sc = ax.scatter(np.linspace(0,1250,len(ys)),ys,c=z,edgecolor='none',s=2 , alpha=1, zorder=2, vmin=0, vmax=max(z)+1) 
         #print "Done with %s %s" %(solvent,state) 
+
+        ax.text(0.97,0.95,r"\textsf{%c}"%indexToLetter[index],va='top',ha='right',transform=ax.transAxes,fontsize=12)
+
         print "%15s%10s\t%5.2f\t%5.2f"%(solvent,state,avg1,avg2) 
 
 

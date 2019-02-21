@@ -17,7 +17,7 @@ colormap= plt.cm.get_cmap('viridis')
 figRows, figCols = 3,2
 
 binSize= 125.0 ##ns 
-skip = 1   ##Skip every n frames 
+skip = 1     ##Skip every n frames 
 
 binSize*=10  ##ns->framess
 binSize = int(binSize) 
@@ -33,20 +33,35 @@ colorDict = {'water':'k','tert':'b','not_bound_sam':'g'}
 xmin,xmax, xstep = 190,250,1.0
 #bandwidth = 10.5 
 
+indexToLetter = {
+        1:'A',
+        2:'B',
+        3:'C',
+        4:'D',
+        5:'E',
+        6:'F'
+        }
+
+
 def gauss (a,b,c,x) :
     return a*np.exp(-(x-b)**2/(c**2))
 
-for bandwidth in [10.0] : #np.arange(9,13,0.5,dtype=float) : 
+for bandwidth in [12.5] : #np.arange(9,13,0.5,dtype=float) : 
     sys.stdout.write("\nBandwidth = %3.1f:\n"%bandwidth)  
-    for param in [ 'hirst' ,'woody' ] : 
+
+    left, right = 0.15,0.98
+    bottom, top = 0.13,0.95
+    wspace = 0 
+
+    fig, axarr = plt.subplots(1,2,figsize=(3.2,2.5),sharex='all',sharey='all') 
+    fig.subplots_adjust(left=left, bottom=bottom,right=right,top=top,wspace=wspace)
+    fig.text((right-left)/2+left,0.00,           r"Wavelength $\lambda $(nm)", ha='center', va='bottom')
+    fig.text(0.01,(top-bottom)/2+bottom,         r"Calc. ellipticity $\thetaup$ (10$^3$ mdeg)",ha='left',va='center',rotation='vertical')
+
+    for combCol, param in enumerate([ 'hirst' ,'woody' ]) : 
         sys.stdout.write("\nUsing %6s parameters:\n"%param)  
 
-        left, right = 0.18,0.95
-        bottom, top = 0.13,0.95
-        fig, ax = plt.subplots(1,1,figsize=(2.5,2.5)) 
-        fig.subplots_adjust(left=left, bottom=bottom,right=right,top=top)
-        fig.text((right-left)/2+left,0.00,           r"Wavelength $\lambda $(nm)", ha='center', va='bottom')
-        fig.text(0.01,(top-bottom)/2+bottom,         r"Calc. ellipticity $\thetaup$ (10$^3$ mdeg)",ha='left',va='center',rotation='vertical')
+        ax = axarr[combCol]
 
         figTA, axTA = plt.subplots(1,1) 
         Z = [[0,0],[0,0]]                                 # Apparently you can't set a colorbar without a mappable. This is hack 
@@ -60,7 +75,7 @@ for bandwidth in [10.0] : #np.arange(9,13,0.5,dtype=float) :
         bottom, top =  0.1,0.95
         hspace, wspace = 0.15,0.1
 
-        fig2, axarr2 = plt.subplots(figRows, figCols, sharex='col',sharey='row', figsize=(5.0,3.8))
+        fig2, axarr2 = plt.subplots(figRows, figCols, sharex='all',sharey='all', figsize=(5.0,3.8))
         fig2.subplots_adjust(left=left, bottom=bottom,right=right,top=top)
         fig2.subplots_adjust(wspace=wspace,hspace=hspace)
 
@@ -73,6 +88,7 @@ for bandwidth in [10.0] : #np.arange(9,13,0.5,dtype=float) :
         fig2.text(right,top-(top-bottom)/2,           r"2:1 H$_2$O:$t$-BuOH",ha='left',va='center',rotation=270)
         fig2.text(right,(top-bottom-hspace)/6+bottom, r"SAM surface",ha='left',va='center',rotation=270)
 
+        index = 0 
         for row,solvent in enumerate(['water', 'tert', 'not_bound_sam']) : 
             if solvent == 'water' :
                 equilTime = 600 ##ns
@@ -86,6 +102,7 @@ for bandwidth in [10.0] : #np.arange(9,13,0.5,dtype=float) :
             avgData = np.zeros_like(xs) 
     
             for col,state in enumerate(['folded', 'unfolded']) : 
+                index += 1 
                 ax2 = axarr2[row,col]
 
                 datafiles = glob.glob('%s/%s/cd_spectra/output-%s-%s-%s/frame*.cdl'%(solvent,state,solvent.replace('_','-'),state,param) )
@@ -128,6 +145,9 @@ for bandwidth in [10.0] : #np.arange(9,13,0.5,dtype=float) :
 
                 #ax2.set_title("%s %s"%(solvent.replace('_',' '),state)) 
                 ax2.set_ylim([-35,40]) 
+                ax2.set_xlim([190,250]) 
+
+                ax2.text(0.97,0.95,r"\textsf{%c}"%indexToLetter[index],va='top',ha='right',transform=ax2.transAxes,fontsize=12)
 
                 colors = [colormap(i) for i in np.linspace(0,1,len(ax2.lines))] 
                 for i,j in enumerate(ax2.lines) : 
@@ -144,6 +164,7 @@ for bandwidth in [10.0] : #np.arange(9,13,0.5,dtype=float) :
 
             ax.plot(xs,avgData,color=colorDict[solvent],linewidth=2) 
 
+
         cbar_ax = fig2.add_axes([0.80, 0.15, 0.03, 0.7])
         cbar = fig2.colorbar(CS3, cax=cbar_ax,ticks=[0+(binSize/10)/2,1250-(binSize/10)/2])
         cbar.ax.set_yticklabels(["0-%i ns"%(binSize/10),"%i-1250 ns"%(1250-(binSize/10))]) 
@@ -151,10 +172,12 @@ for bandwidth in [10.0] : #np.arange(9,13,0.5,dtype=float) :
         fig2.savefig('figures/cd_spectra_%s_time_resolved_%.1f.png'%(param,bandwidth),format='png') 
         plt.close(fig2) 
 
-        ax.set_xlim([190,250]) 
-        ax.set_ylim([-35,40]) 
-        fig.savefig('figures/combined_cd_spectra_%s_%.1f.png'%(param,bandwidth),format='png')
-        plt.close(fig) 
+        ax.text(0.97,0.95,r"\textsf{%c}"%indexToLetter[combCol+1],va='top',ha='right',transform=ax.transAxes,fontsize=12)
+
+    ax.set_xlim([190,250]) 
+    ax.set_ylim([-35,40]) 
+    fig.savefig('figures/combined_cd_spectra_%.1f.png'%(bandwidth),format='png')
+    plt.close(fig) 
 
 
 

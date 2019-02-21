@@ -8,9 +8,10 @@ lines.linewidth   : 1.0
 errorbar.capsize : 2
 font.family     : serif  
 font.serif      : Computer Modern Roman  
+font.sans-serif : Arial
 font.size       : 9 
 text.usetex     : True  # use latex for all text handling  
-text.latex.preamble : \usepackage{txfonts},\usepackage{lmodern}
+text.latex.preamble : \usepackage{txfonts},\usepackage{lmodern},\usepackage{helvet}
 mathtext.default : regular
 figure.figsize  : 3.0, 2.5
 figure.dpi      : 500  
