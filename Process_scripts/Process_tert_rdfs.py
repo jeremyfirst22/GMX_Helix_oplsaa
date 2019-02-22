@@ -46,7 +46,7 @@ for index,item in enumerate(['wat_wat', 'tba_wat', 'tba_tba']) :
 
     ax.plot(data[:,0],data[:,1],linewidth=2,
             color=colors[item],
-            label=item.replace('_','-').replace('tba','TBA').replace('wat','H$_2$O'))#,s=0.1 
+            label=item.replace('_',r"$\--$").replace('tba',r"\emph{t}-BuOH").replace('wat','H$_2$O'))#,s=0.1 
     ax.plot(data[:,0],y,color='k') 
     
     ax.set_ylim(0,6) 
