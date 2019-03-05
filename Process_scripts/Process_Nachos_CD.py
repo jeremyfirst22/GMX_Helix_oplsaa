@@ -18,7 +18,7 @@ fig.text(0.474,0.04, r"Wavelength (nm)", ha='center', va='center')
 #fig.text(0.03,0.5, r"Num waters within %s A of Q61 s.c. and %s A of O1G"%(dist, dist) , ha='center', va='center',rotation='vertical') 
 fig.text(0.03,0.535, r"Ellipticity on SAM $\thetaup$ (mdeg)", ha='center', va='center',rotation='vertical') 
 fig.text(0.99,0.535, r"Molar ellipticity in solution $\thetaup_m$ ", ha='right', va='center',rotation=270) 
-fig.text(0.90,0.535, r"(mdeg cm$^2$ dmol$^{-1}$)", ha='left', va='center',rotation=270) 
+fig.text(0.90,0.535, r"(10$^{3}$ deg cm$^2$ dmol$^{-1}$)", ha='left', va='center',rotation=270) 
 
 
 ax2 = ax.twinx() 

@@ -46,7 +46,7 @@ indexToLetter = {
 def gauss (a,b,c,x) :
     return a*np.exp(-(x-b)**2/(c**2))
 
-for bandwidth in [12.5] : #np.arange(9,13,0.5,dtype=float) : 
+for bandwidth in [10.0] : #np.arange(9,13,0.5,dtype=float) : 
     sys.stdout.write("\nBandwidth = %3.1f:\n"%bandwidth)  
 
     left, right = 0.15,0.98
@@ -56,7 +56,7 @@ for bandwidth in [12.5] : #np.arange(9,13,0.5,dtype=float) :
     fig, axarr = plt.subplots(1,2,figsize=(3.2,2.5),sharex='all',sharey='all') 
     fig.subplots_adjust(left=left, bottom=bottom,right=right,top=top,wspace=wspace)
     fig.text((right-left)/2+left,0.00,           r"Wavelength $\lambda $(nm)", ha='center', va='bottom')
-    fig.text(0.01,(top-bottom)/2+bottom,         r"Calc. ellipticity $\thetaup$ (10$^3$ mdeg)",ha='left',va='center',rotation='vertical')
+    fig.text(0.01,(top-bottom)/2+bottom,         r"Ellipticity $\thetaup$ (10$^{3}$ deg cm$^2$ dmol$^{-1}$)",ha='left',va='center',rotation='vertical')
 
     for combCol, param in enumerate([ 'hirst' ,'woody' ]) : 
         sys.stdout.write("\nUsing %6s parameters:\n"%param)  
@@ -80,7 +80,7 @@ for bandwidth in [12.5] : #np.arange(9,13,0.5,dtype=float) :
         fig2.subplots_adjust(wspace=wspace,hspace=hspace)
 
         fig2.text((right-left)/2+left,0.03,           r"Wavelength $\lambda $(nm)", ha='center', va='center')
-        fig2.text(0.02,(top-bottom)/2+bottom,         r"Calc. ellipticity $\thetaup$ (10$^3$ mdeg)",ha='center',va='center',rotation='vertical')
+        fig2.text(0.02,(top-bottom)/2+bottom,         r"Ellipticity $\thetaup$ (10$^{3}$ deg cm$^2$ dmol$^{-1}$)",ha='center',va='center',rotation='vertical')
         
         fig2.text((right-left)/4+left,top,            r"Starting with folded",ha='center',va='bottom')
         fig2.text(right-(right-left)/4,top,           r"Starting with unfolded",ha='center',va='bottom')
