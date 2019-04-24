@@ -163,16 +163,16 @@ prep(){
 analysis(){
     if [ ! -d $fold ] ; then mkdir $fold ; fi 
     cd $fold 
-    dssp
-    rgyr
+    #dssp
+    #rgyr
     #minimage
     #rdf
     nopbc
     rmsd 
-    cd_spectra
+    #cd_spectra
     #cluster
-    good-turing
-    order
+    #good-turing
+    #order
     cd ../
 }
 

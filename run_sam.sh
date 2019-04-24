@@ -156,16 +156,16 @@ prep(){
 analysis(){
     if [ ! -d $fold ] ; then mkdir $fold ; fi 
     cd $fold 
-    dssp
-    rgyr
+    #dssp
+    #rgyr
     #minimage
     #rdf
-    #nopbc
-    #rmsd 
+    nopbc
+    rmsd 
     #cd_spectra
-    cluster
-    good-turing
-    order
+    #cluster
+    #good-turing
+    #order
     cd ../
 }
 
@@ -1260,33 +1260,49 @@ rdf(){
 }
 
 nopbc(){
-    printf "\t\tCreating nopbc copy......................." 
-    if [ ! -f nopbc/fit.xtc ] ; then 
+    printf "\t\tCreating nopbc copy......................."
+    if [ ! -f nopbc/fit.xtc ] ; then
         create_dir nopbc
         cd nopbc
-        clean 
+        clean
 
-        if [ $fold = "folded" ] ; then 
-            startStructure=system_npt.gro 
+        if [ $fold = "folded" ] ; then
+            startStructure=system_npt.gro
             MOLEC=folded_$SOL
-        else 
-            startStructure=cooling.gro 
+        else
+            startStructure=cooling.gro
             MOLEC=unfolded_$SOL
-            fi 
+            fi
 
-        echo "1 | 14" > selection.dat 
-        echo "q" >> selection.dat 
+        echo "Protein Protein" | gmx trjconv -f ../Production/$startStructure \
+            -s ../Production/$MOLEC.tpr \
+            -pbc mol \
+            -ur compact \
+            -center \
+            -o nopbc.gro >> $logFile 2>> $errFile
+        check nopbc.gro
 
-        cat selection.dat | gmx make_ndx -f ../Production/$MOLEC.tpr >> $logFile 2>> $errFile 
-        check index.ndx 
+        echo "Protein Protein" | gmx trjconv -f ../Production/$MOLEC.xtc \
+            -s ../Production/$MOLEC.tpr \
+            -pbc mol \
+            -ur compact \
+            -center \
+            -o nopbc.xtc >> $logFile 2>> $errFile
+        check nopbc.xtc
+
+        echo "1 | 14" > selection.dat
+        echo "q" >> selection.dat
+
+        cat selection.dat | gmx make_ndx -f ../Production/$MOLEC.tpr >> $logFile 2>> $errFile
+        check index.ndx
 
         echo "Protein_LIG" | gmx trjconv -f ../Production/$startStructure \
             -s ../Production/$MOLEC.tpr \
             -n index.ndx \
             -pbc mol \
             -ur compact \
-            -o fit.gro >> $logFile 2>> $errFile 
-        check fit.gro 
+            -o fit.gro >> $logFile 2>> $errFile
+        check fit.gro
 
         echo "Protein Protein_LIG" | gmx trjconv -f ../Production/$MOLEC.xtc \
             -s ../Production/$MOLEC.tpr \
@@ -1295,33 +1311,33 @@ nopbc(){
             -pbc res \
             -dt 40 \
             -ur compact \
-            -o fit.xtc >> $logFile 2>> $errFile 
-        check fit.xtc 
+            -o fit.xtc >> $logFile 2>> $errFile
+        check fit.xtc
 
-        printf "Success\n" 
+        printf "Success\n"
         cd ../
     else
         printf "Skipped\n"
-        fi  
+        fi
 }
 
 rmsd(){
-    printf "\t\tCalculating RMSD.........................." 
-    if [ ! -f rmsd/rmsd.xvg ] ; then 
+    printf "\t\tCalculating RMSD.........................."
+    if [ ! -f rmsd/rmsd.xvg ] ; then
         create_dir rmsd
         cd rmsd
-        clean 
+        clean
 
-        echo "Backbone Backbone" | gmx rms -f ../Production/$MOLEC.xtc \
-            -s ../Production/$MOLEC.tpr \
-            -o rmsd.xvg >> $logFile 2>> $errFile 
-        check rmsd.xvg  
+        echo "Backbone Backbone" | gmx rms -f ../nopbc/nopbc.xtc \
+            -s $fileName \
+            -o rmsd.xvg >> $logFile 2>> $errFile
+        check rmsd.xvg
 
-        printf "Success\n" 
+        printf "Success\n"
         cd ../
     else
         printf "Skipped\n"
-        fi  
+        fi
 }
 
 cd_spectra(){
