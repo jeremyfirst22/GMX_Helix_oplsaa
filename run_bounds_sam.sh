@@ -167,12 +167,14 @@ analysis(){
     #rgyr
     #minimage
     #rdf
-    nopbc
-    rmsd 
+    #nopbc
+    #rmsd 
     #cd_spectra
     #cluster
     #good-turing
     #order
+    density
+    hbond
     cd ../
 }
 
@@ -849,6 +851,125 @@ order(){
             -e 1000 \
             -o density.xvg >> $logFile 2>> $errFile 
         check density.xvg
+
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
+density(){
+    equilTime=150  ## ns 
+    printf "\t\tCalculating density profile of peptide...." 
+    if [[ ! -f denisty/water.xvg || ! -f density/density.xvg || ! -f density/densmap.dat ]] ; then 
+        create_dir density
+        cd density
+        clean 
+
+        #To avoid articfact in the rounding of positions to nearest bin, 
+        #   (ie, it seem gmx density only rounds up, so peaks appear when rounding up is more likely)
+        #   we need to set the number of bins roughly equal to to the precision of the xtc file. 
+        zdim=`tail -n 1 ../Production/system_npt.gro | awk '{print $3}'`
+        sliceNum=`echo "$zdim * 1000" | bc -l | awk '{printf "%i", $0}' `
+        if [ ! -f water.xvg ] ; then 
+            echo 'Water' | gmx density -s ../Production/$MOLEC.tpr \
+                -f ../Production/$MOLEC.xtc \
+                -b $((equilTime*1000)) \
+                -d Z \
+                -sl $sliceNum \
+                -dens number \
+                -o water.xvg >> $logFile 2>> $errFile 
+        fi
+        check water.xvg
+
+        if [ ! -f density.xvg ] ; then 
+            echo 'Protein' | gmx density -s ../Production/$MOLEC.tpr \
+                -f ../Production/$MOLEC.xtc \
+                -b $((equilTime*1000)) \
+                -d Z \
+                -sl $sliceNum \
+                -dens number \
+                -o density.xvg >> $logFile 2>> $errFile 
+        fi
+        check density.xvg
+
+        if [ ! -f densmap.dat ] ; then 
+            if [ ! -f nopbc.xtc ] ; then 
+                echo 'Protein Protein' | gmx trjconv -s ../Production/$MOLEC.tpr \
+                    -f ../Production/$MOLEC.xtc \
+                    -pbc mol \
+                    -o nopbc.xtc >> $logFile 2>> $errFile 
+            fi 
+            check nopbc.xtc 
+
+            if [ ! -f nopbc.gro ] ; then 
+                echo 'Protein Protein' | gmx trjconv -s ../Production/$MOLEC.tpr \
+                    -f ../Production/system_npt.gro \
+                    -pbc mol \
+                    -o nopbc.gro >> $logFile 2>> $errFile 
+            fi 
+            check nopbc.gro 
+
+            if [ ! -f fit.xtc ] ; then 
+                echo 'Protein Protein' | gmx trjconv -s nopbc.gro \
+                    -f nopbc.xtc \
+                    -fit rotxy+transxy \
+                    -o fit.xtc >> $logFile 2>> $errFile 
+            fi 
+            check fit.xtc 
+
+            if [ ! -f densmap.xpm ] ; then 
+                echo 'Protein' | gmx densmap -s nopbc.gro \
+                    -f fit.xtc \
+                    -b $((equilTime*1000)) \
+                    -unit count \
+                    -o densmap.xpm >> $logFile 2>> $errFile 
+            fi 
+            check densmap.xpm 
+
+            $TOP/analysis_scripts/xpm2dat.py densmap.xpm 
+        fi
+        check densmap.dat 
+
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
+hbond(){
+    equilTime=150  ## ns 
+    printf "\t\tAnalyzing hbonds to peptide..............." 
+    if [[ ! -f hbond/sidechain.xvg || ! -f hbond/mainchain.xvg || -f hbond/protein.xvg ]] ; then 
+        create_dir hbond
+        cd hbond
+        clean 
+
+        if [ ! -f protein.xvg ] ; then 
+            echo 'Protein Water' | gmx hbond -s ../Production/$MOLEC.tpr \
+                -f ../Production/$MOLEC.xtc \
+                -b $((equilTime*1000)) \
+                -num protein.xvg >> $logFile 2>> $errFile 
+        fi 
+        check protein.xvg 
+
+        if [ ! -f mainchain.xvg ] ; then 
+            echo 'MainChain+H Water' | gmx hbond -s ../Production/$MOLEC.tpr \
+                -f ../Production/$MOLEC.xtc \
+                -b $((equilTime*1000)) \
+                -num mainchain.xvg >> $logFile 2>> $errFile 
+        fi 
+        check mainchain.xvg 
+
+        if [ ! -f sidechain.xvg ] ; then 
+            echo 'SideChain Water' | gmx hbond -s ../Production/$MOLEC.tpr \
+                -f ../Production/$MOLEC.xtc \
+                -b $((equilTime*1000)) \
+                -num sidechain.xvg >> $logFile 2>> $errFile 
+        fi
+        check sidechain.xvg 
 
         printf "Success\n" 
         cd ../
