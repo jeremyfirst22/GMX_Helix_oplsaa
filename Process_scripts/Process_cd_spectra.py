@@ -85,7 +85,7 @@ for bandwidth in [10.0] : #np.arange(9,13,0.5,dtype=float) :
         fig2.text((right-left)/4+left,top,            r"Starting with folded",ha='center',va='bottom')
         fig2.text(right-(right-left)/4,top,           r"Starting with unfolded",ha='center',va='bottom')
         fig2.text(right,top-(top-bottom)/6 ,          r"H$_2$O",ha='left',va='center',rotation=270)
-        fig2.text(right,top-(top-bottom)/2,           r"2:1 H$_2$O:$t$-BuOH",ha='left',va='center',rotation=270)
+        fig2.text(right,top-(top-bottom)/2,           r"2:1 $t$-BuOH/H$_2$O",ha='left',va='center',rotation=270)
         fig2.text(right,(top-bottom-hspace)/6+bottom, r"SAM surface",ha='left',va='center',rotation=270)
 
         index = 0 

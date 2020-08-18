@@ -50,7 +50,7 @@ fig.text(0.01,(top-bottom)/2+bottom,         r"RMSD ($\AA$)",ha='left',va='cente
 fig.text((right-left)/4+left,top,            r"Starting with folded",ha='center',va='bottom')
 fig.text(right-(right-left)/4,top,           r"Starting with unfolded",ha='center',va='bottom')
 fig.text(right,top-(top-bottom)/6 ,          r"H$_2$O",ha='left',va='center',rotation=270)
-fig.text(right,top-(top-bottom)/2,           r"2:1 H$_2$O:$t$-BuOH",ha='left',va='center',rotation=270)
+fig.text(right,top-(top-bottom)/2,           r"2:1 $t$-BuOH/H$_2$O",ha='left',va='center',rotation=270)
 fig.text(right,(top-bottom-hspace)/6+bottom, r"SAM surface",ha='left',va='center',rotation=270)
 
 indexToLetter = {

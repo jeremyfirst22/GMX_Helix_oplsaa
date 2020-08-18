@@ -159,7 +159,7 @@ analysis(){
     #dssp
     #rgyr
     #minimage
-    #rdf
+    rdf
     #nopbc
     #rmsd 
     #cd_spectra
@@ -168,6 +168,8 @@ analysis(){
     #order
     density 
     hbond
+    volume
+    excluded_volume
     cd ../
 }
 
@@ -1221,38 +1223,64 @@ minimage(){
 
 rdf(){
     printf "\t\tCalculating RDFs.........................." 
-    if [ ! -f rdf/sam_lys.xvg ] ; then 
+    if [ ! -f rdf/backNH_wat.xvg ] ; then 
         create_dir rdf
         cd rdf
         clean 
 
-        gmx rdf -f ../Production/$MOLEC.xtc \
-            -s ../Production/$MOLEC.tpr \
-            -ref 'name CD1 CD2 and resname LEU' \
-            -sel 'resname SOL and name OW' \
-            -o leu_wat.xvg >> $logFile 2>> $errFile 
+        if [ ! -f leu_wat.xvg ] ; then 
+            gmx rdf -f ../Production/$MOLEC.xtc \
+                -s ../Production/$MOLEC.tpr \
+                -ref 'name CD1 CD2 and resname LEU' \
+                -sel 'resname SOL and name OW' \
+                -o leu_wat.xvg >> $logFile 2>> $errFile 
+        fi 
         check leu_wat.xvg 
 
-        gmx rdf -f ../Production/$MOLEC.xtc \
-            -s ../Production/$MOLEC.tpr \
-            -ref 'name NZ and resname LYS' \
-            -sel 'resname SOL and name OW' \
-            -o lys_wat.xvg >> $logFile 2>> $errFile 
+        if [ ! -f lys_wat.xvg ] ; then 
+            gmx rdf -f ../Production/$MOLEC.xtc \
+                -s ../Production/$MOLEC.tpr \
+                -ref 'name NZ and resname LYS' \
+                -sel 'resname SOL and name OW' \
+                -o lys_wat.xvg >> $logFile 2>> $errFile 
+        fi 
         check lys_wat.xvg 
 
-        gmx rdf -f ../Production/$MOLEC.xtc \
-            -s ../Production/$MOLEC.tpr \
-            -ref 'name CD1 CD2 and resname LEU' \
-            -sel 'name C10 and resname LIG' \
-            -o sam_leu.xvg >> $logFile 2>> $errFile 
+        if [ ! -f sam_leu.xvg ] ; then 
+            gmx rdf -f ../Production/$MOLEC.xtc \
+                -s ../Production/$MOLEC.tpr \
+                -ref 'name CD1 CD2 and resname LEU' \
+                -sel 'name C10 and resname LIG' \
+                -o sam_leu.xvg >> $logFile 2>> $errFile 
+        fi 
         check sam_leu.xvg 
 
-        gmx rdf -f ../Production/$MOLEC.xtc \
-            -s ../Production/$MOLEC.tpr \
-            -ref 'name NZ and resname LYS' \
-            -sel 'name C10 and resname LIG' \
-            -o sam_lys.xvg >> $logFile 2>> $errFile 
+        if [ ! -f sam_lys.xvg ] ; then 
+            gmx rdf -f ../Production/$MOLEC.xtc \
+                -s ../Production/$MOLEC.tpr \
+                -ref 'name NZ and resname LYS' \
+                -sel 'name C10 and resname LIG' \
+                -o sam_lys.xvg >> $logFile 2>> $errFile 
+        fi 
         check sam_lys.xvg 
+
+        if [ ! -f backCO_wat.xvg ] ; then 
+            gmx rdf -f ../Production/$MOLEC.xtc \
+                -s ../Production/$MOLEC.tpr \
+                -ref 'name O' \
+                -sel 'resname SOL and name OW' \
+                -o backCO_wat.xvg >> $logFile 2>> $errFile 
+        fi 
+        check backCO_wat.xvg 
+
+        if [ ! -f backNH_wat.xvg ] ; then 
+            gmx rdf -f ../Production/$MOLEC.xtc \
+                -s ../Production/$MOLEC.tpr \
+                -ref 'name N' \
+                -sel 'resname SOL and name OW' \
+                -o backNH_wat.xvg >> $logFile 2>> $errFile 
+        fi 
+        check backNH_wat.xvg 
 
         printf "Success\n" 
         cd ../
@@ -1461,7 +1489,7 @@ order(){
 density(){
     equilTime=150  ## ns 
     printf "\t\tCalculating density profile of peptide...." 
-    if [[ ! -f denisty/water.xvg || ! -f density/density.xvg || ! -f density/densmap.dat ]] ; then 
+    if [[ ! -f density/water.xvg || ! -f density/density.xvg || ! -f density/densmap.dat ]] ; then 
         create_dir density
         cd density
         clean 
@@ -1540,8 +1568,11 @@ density(){
 
 hbond(){
     equilTime=150  ## ns 
+    sampling=10    ## ns 
     printf "\t\tAnalyzing hbonds to peptide..............." 
-    if [[ ! -f hbond/sidechain.xvg || ! -f hbond/mainchain.xvg || -f hbond/protein.xvg ]] ; then 
+    if [[ ! -f hbond/sidechain.xvg || ! -f hbond/nearby_sidechain.xvg \
+        || ! -f hbond/mainchain.xvg || ! -f hbond_nearby_mainchain.xvg \
+        || ! -f hbond/protein.xvg || ! -f hbond/nearby_protein.xvg ]] ; then 
         create_dir hbond
         cd hbond
         clean 
@@ -1550,25 +1581,58 @@ hbond(){
             echo 'Protein Water' | gmx hbond -s ../Production/$MOLEC.tpr \
                 -f ../Production/$MOLEC.xtc \
                 -b $((equilTime*1000)) \
+                -dt $((sampling*1000)) \
                 -num protein.xvg >> $logFile 2>> $errFile 
         fi 
         check protein.xvg 
+
+        if [ ! -f nearby_protein.xvg ] ; then 
+            echo 'name "OW" and same residue as within 0.27 of group "Protein"' > selection.dat 
+            cat selection.dat | gmx select -s ../Production/$MOLEC.tpr \
+                -f ../Production/$MOLEC.xtc \
+                -b $((equilTime*1000)) \
+                -dt $((sampling*1000)) \
+                -os nearby_protein.xvg >> $logFile 2>> $errFile 
+        fi 
+        check nearby_protein.xvg 
 
         if [ ! -f mainchain.xvg ] ; then 
             echo 'MainChain+H Water' | gmx hbond -s ../Production/$MOLEC.tpr \
                 -f ../Production/$MOLEC.xtc \
                 -b $((equilTime*1000)) \
+                -dt $((sampling*1000)) \
                 -num mainchain.xvg >> $logFile 2>> $errFile 
         fi 
         check mainchain.xvg 
+
+        if [ ! -f nearby_mainchain.xvg ] ; then 
+            echo 'name "OW" and same residue as within 0.27 of group "MainChain+H"' > selection.dat
+            cat selection.dat | gmx select -s ../Production/$MOLEC.tpr \
+                -f ../Production/$MOLEC.xtc \
+                -b $((equilTime*1000)) \
+                -dt $((sampling*1000)) \
+                -os nearby_mainchain.xvg >> $logFile 2>> $errFile 
+        fi 
+        check nearby_mainchain.xvg 
 
         if [ ! -f sidechain.xvg ] ; then 
             echo 'SideChain Water' | gmx hbond -s ../Production/$MOLEC.tpr \
                 -f ../Production/$MOLEC.xtc \
                 -b $((equilTime*1000)) \
+                -dt $((sampling*1000)) \
                 -num sidechain.xvg >> $logFile 2>> $errFile 
         fi
         check sidechain.xvg 
+
+        if [ ! -f nearby_sidechain.xvg ] ; then 
+            echo 'name "OW" and same residue as within 0.27 of group "SideChain"' > selection.dat
+            cat selection.dat | gmx select -s ../Production/$MOLEC.tpr \
+                -f ../Production/$MOLEC.xtc \
+                -b $((equilTime*1000)) \
+                -dt $((sampling*1000)) \
+                -os nearby_sidechain.xvg >> $logFile 2>> $errFile 
+        fi 
+        check nearby_sidechain.xvg 
 
         printf "Success\n" 
         cd ../
@@ -1576,5 +1640,99 @@ hbond(){
         printf "Skipped\n"
         fi  
 }
+
+volume(){
+    equilTime=150  ## ns 
+    printf "\t\tCalculating volume of peptide............." 
+    if [[ ! -f volume/volume.xvg || ! -f volume/vdw.xvg ]] ; then 
+        create_dir volume
+        cd volume
+        clean 
+
+        if [ ! -f volume.xvg ] ; then 
+            echo 'Protein' | gmx sasa -s ../Production/$MOLEC.tpr \
+                -f ../Production/$MOLEC.xtc \
+                -b $((equilTime*1000)) \
+                -ndots 240 \
+                -tv volume.xvg >> $logFile 2>> $errFile 
+        fi 
+        check volume.xvg 
+
+        if [ ! -f vdw.xvg ] ; then 
+            echo 'Protein' | gmx sasa -s ../Production/$MOLEC.tpr \
+                -f ../Production/$MOLEC.xtc \
+                -b $((equilTime*1000)) \
+                -ndots 240 \
+                -probe 0 \
+                -tv vdw.xvg >> $logFile 2>> $errFile 
+        fi 
+        check vdw.xvg 
+
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
+excluded_volume(){
+    equilTime=150  ## ns 
+    sampling=10    ## ns 
+    printf "\t\tExcluded volume of peptide + water:      \n"
+
+    create_dir excluded_volume
+    cd excluded_volume
+    clean 
+
+    printf "\t\t     Pre-compressing trajectory..........."
+    if [ ! -f whole.xtc ] ; then 
+        echo 'Protein System' | gmx trjconv -s ../Production/$MOLEC.tpr \
+            -f ../Production/$MOLEC.xtc \
+            -pbc mol \
+            -b $((equilTime*1000)) \
+            -dt $((sampling*1000)) \
+            -center \
+            -o whole.xtc >> $logFile 2>> $errFile 
+        check whole.xtc 
+        printf "Success\n" 
+    else 
+        printf "Skipped\n"
+    fi 
+
+    for radius in `seq -w 0.05 0.02 0.50` ; do 
+        printf "\t\t     Radius: %4s........................." $radius 
+
+        if [ ! -f size_${radius}.xvg ] ; then 
+            gmx select -s ../Production/$MOLEC.tpr \
+                -f whole.xtc \
+                -b $((equilTime*1000)) \
+                -dt $((sampling*1000)) \
+                -select "name OW and group \"Water\" and same residue as within $radius of group \"Protein\" " \
+                -os size_${radius}.xvg >> $logFile 2>> $errFile 
+        fi 
+        check size_${radius}.xvg 
+
+        for probe in `seq -w 0.00 0.01 0.14` ; do 
+            if [ ! -f volume_p_${probe}_r_${radius}.xvg ] ; then 
+                echo "group \"Protein\" or (group \"Water\" and same residue as within $radius of group \"Protein\")" > selection.dat 
+
+                cat selection.dat |  gmx sasa \
+                    -s ../Production/$MOLEC.tpr \
+                    -f whole.xtc \
+                    -b $((equilTime*1000)) \
+                    -dt $((sampling*1000)) \
+                    -probe ${probe} \
+                    -ndots 240 \
+                    -o area_p_${probe}_r_${radius}.xvg \
+                    -tv volume_p_${probe}_r_${radius}.xvg >> $logFile 2>> $errFile
+            fi 
+            check volume_p_${probe}_r_${radius}.xvg
+        done 
+
+        printf "Success\n" 
+    done 
+    cd ../
+}
+
 
 main

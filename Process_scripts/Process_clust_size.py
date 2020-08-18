@@ -44,7 +44,7 @@ for solvent in ['tert','water','not_bound_sam' ] :
     data = np.genfromtxt(datafile,skip_header=headlines) 
 
     if solvent == 'tert' : 
-        label = r"2:1 \emph{t}-BuOH:H$_2$O"
+        label = r"2:1 \emph{t}-BuOH/H$_2$O"
     elif solvent == 'water' : 
         label = r"H$_2$O"
     elif solvent == 'not_bound_sam' : 

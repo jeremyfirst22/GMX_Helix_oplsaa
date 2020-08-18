@@ -121,6 +121,9 @@ analysis(){
     #cd_spectra 
     #cluster
     good-turing
+    hbond
+    volume
+    excluded_volume
     cd ../
 }
 
@@ -942,6 +945,174 @@ good-turing(){
     else
         printf "Skipped\n"
         fi  
+}
+
+hbond(){
+    equilTime=600  ## ns 
+    sampling=10    ## ns 
+    printf "\t\tAnalyzing hbonds to peptide..............." 
+    if [[ ! -f hbond/sidechain.xvg || ! -f hbond/nearby_sidechain.xvg \
+        || ! -f hbond/mainchain.xvg || ! -f hbond_nearby_mainchain.xvg \
+        || ! -f hbond/protein.xvg || ! -f hbond/nearby_protein.xvg ]] ; then 
+        create_dir hbond
+        cd hbond
+        clean 
+
+        if [ ! -f protein.xvg ] ; then 
+            echo 'Protein Water' | gmx hbond -s ../Production/$MOLEC.tpr \
+                -f ../Production/$MOLEC.xtc \
+                -b $((equilTime*1000)) \
+                -dt $((sampling*1000)) \
+                -num protein.xvg >> $logFile 2>> $errFile 
+        fi 
+        check protein.xvg 
+
+        if [ ! -f nearby_protein.xvg ] ; then 
+            echo 'name "OW" and same residue as within 0.27 of group "Protein"' > selection.dat 
+            cat selection.dat | gmx select -s ../Production/$MOLEC.tpr \
+                -f ../Production/$MOLEC.xtc \
+                -b $((equilTime*1000)) \
+                -dt $((sampling*1000)) \
+                -os nearby_protein.xvg >> $logFile 2>> $errFile 
+        fi 
+        check nearby_protein.xvg 
+
+        if [ ! -f mainchain.xvg ] ; then 
+            echo 'MainChain+H Water' | gmx hbond -s ../Production/$MOLEC.tpr \
+                -f ../Production/$MOLEC.xtc \
+                -b $((equilTime*1000)) \
+                -dt $((sampling*1000)) \
+                -num mainchain.xvg >> $logFile 2>> $errFile 
+        fi 
+        check mainchain.xvg 
+
+        if [ ! -f nearby_mainchain.xvg ] ; then 
+            echo 'name "OW" and same residue as within 0.27 of group "MainChain+H"' > selection.dat
+            cat selection.dat | gmx select -s ../Production/$MOLEC.tpr \
+                -f ../Production/$MOLEC.xtc \
+                -b $((equilTime*1000)) \
+                -dt $((sampling*1000)) \
+                -os nearby_mainchain.xvg >> $logFile 2>> $errFile 
+        fi 
+        check nearby_mainchain.xvg 
+
+        if [ ! -f sidechain.xvg ] ; then 
+            echo 'SideChain Water' | gmx hbond -s ../Production/$MOLEC.tpr \
+                -f ../Production/$MOLEC.xtc \
+                -b $((equilTime*1000)) \
+                -dt $((sampling*1000)) \
+                -num sidechain.xvg >> $logFile 2>> $errFile 
+        fi
+        check sidechain.xvg 
+
+        if [ ! -f nearby_sidechain.xvg ] ; then 
+            echo 'name "OW" and same residue as within 0.27 of group "SideChain"' > selection.dat
+            cat selection.dat | gmx select -s ../Production/$MOLEC.tpr \
+                -f ../Production/$MOLEC.xtc \
+                -b $((equilTime*1000)) \
+                -dt $((sampling*1000)) \
+                -os nearby_sidechain.xvg >> $logFile 2>> $errFile 
+        fi 
+        check nearby_sidechain.xvg 
+
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
+volume(){
+    equilTime=600  ## ns 
+    printf "\t\tCalculating volume of peptide............." 
+    if [[ ! -f volume/volume.xvg || ! -f volume/vdw.xvg ]] ; then 
+        create_dir volume
+        cd volume
+        clean 
+
+        if [ ! -f volume.xvg ] ; then 
+            echo 'Protein' | gmx sasa -s ../Production/$MOLEC.tpr \
+                -f ../Production/$MOLEC.xtc \
+                -b $((equilTime*1000)) \
+                -ndots 240 \
+                -tv volume.xvg >> $logFile 2>> $errFile 
+        fi 
+        check volume.xvg 
+
+        if [ ! -f vdw.xvg ] ; then 
+            echo 'Protein' | gmx sasa -s ../Production/$MOLEC.tpr \
+                -f ../Production/$MOLEC.xtc \
+                -b $((equilTime*1000)) \
+                -ndots 240 \
+                -probe 0 \
+                -tv vdw.xvg >> $logFile 2>> $errFile 
+        fi 
+        check vdw.xvg 
+
+        printf "Success\n" 
+        cd ../
+    else
+        printf "Skipped\n"
+        fi  
+}
+
+excluded_volume(){
+    equilTime=600  ## ns 
+    sampling=10    ## ns 
+    printf "\t\tExcluded volume of peptide + water:      \n"
+
+    create_dir excluded_volume
+    cd excluded_volume
+    clean 
+
+    printf "\t\t     Pre-compressing trajectory..........."
+    if [ ! -f whole.xtc ] ; then 
+        echo 'Protein System' | gmx trjconv -s ../Production/$MOLEC.tpr \
+            -f ../Production/$MOLEC.xtc \
+            -pbc mol \
+            -b $((equilTime*1000)) \
+            -dt $((sampling*1000)) \
+            -center \
+            -o whole.xtc >> $logFile 2>> $errFile 
+        check whole.xtc 
+        printf "Success\n" 
+    else 
+        printf "Skipped\n"
+    fi 
+
+    for radius in `seq -w 0.05 0.02 0.50` ; do 
+        printf "\t\t     Radius: %4s........................." $radius 
+
+        if [ ! -f size_${radius}.xvg ] ; then 
+            gmx select -s ../Production/$MOLEC.tpr \
+                -f whole.xtc \
+                -b $((equilTime*1000)) \
+                -dt $((sampling*1000)) \
+                -select "name OW and group \"Water\" and same residue as within $radius of group \"Protein\" " \
+                -os size_${radius}.xvg >> $logFile 2>> $errFile 
+        fi 
+        check size_${radius}.xvg 
+
+        for probe in `seq -w 0.00 0.01 0.14` ; do 
+            if [ ! -f volume_p_${probe}_r_${radius}.xvg ] ; then 
+                echo "group \"Protein\" or (group \"Water\" and same residue as within $radius of group \"Protein\")" > selection.dat 
+
+                cat selection.dat |  gmx sasa \
+                    -s ../Production/$MOLEC.tpr \
+                    -f whole.xtc \
+                    -b $((equilTime*1000)) \
+                    -dt $((sampling*1000)) \
+                    -probe ${probe} \
+                    -ndots 240 \
+                    -o area_p_${probe}_r_${radius}.xvg \
+                    -tv volume_p_${probe}_r_${radius}.xvg >> $logFile 2>> $errFile
+            fi 
+            check volume_p_${probe}_r_${radius}.xvg
+        done 
+
+        printf "Success\n" 
+    done 
+    cd ../
 }
 
 main

@@ -45,7 +45,7 @@ fig.text((right-left)/2+left,0,           r"Radius of gyration, $R_g$ ($\AA$)", 
 fig.text(0.01,(top-bottom)/2+bottom,         r"RMSD ($\AA$)",ha='left',va='center',rotation='vertical')
 
 fig.text((right-left-wspace/2)/6 +left          ,0.98, r"H$_2$O",ha='center',va='top') 
-fig.text((right-left)/2          +left          ,0.98, r"2:1 H$_2$O:$t$-BuOH",ha='center',va='top') 
+fig.text((right-left)/2          +left          ,0.98, r"2:1 $t$-BuOH/H$_2$O",ha='center',va='top') 
 fig.text(right-(right-left-wspace/2)/6          ,0.98, r"SAM surface",ha='center',va='top') 
 
 indexToLetter = {
